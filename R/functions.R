@@ -1,7 +1,7 @@
-library(igraph)
-library(data.table)
-library(stringi)
 library(memoise)
+library(data.table)
+library(igraph)
+library(stringi)
 
 make_tr_vec_permutation <- memoise(function(N,p,R,seed=NULL){
   set.seed(seed)
@@ -29,30 +29,30 @@ make_adj_matrix_sq_lattice <- function(N){
   if (sqrt(N) != round(sqrt(N))) {
     stop(paste('N must be a square number, not', N))
   }
-  return(as.matrix(as_adj(graph.lattice(c(sqrt(N),sqrt(N)), circular = F))))
+  return(as.matrix(igraph::as_adj(igraph::graph.lattice(c(sqrt(N),sqrt(N)), circular = F))))
   
 }
 
 make_adj_matrix_scale_free <- function(N, seed) {
   set.seed(seed)
-  g <- barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
+  g <- igraph::barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
                      out.pref = FALSE, zero.appeal = 1, directed = FALSE,
                      algorithm ="psumtree", start.graph = NULL)
-  while (min(degree(g, V(g)))==0) {
-    g <- barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
+  while (min(igraph::degree(g, igraph::V(g)))==0) {
+    g <- igraph::barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
                        out.pref = FALSE, zero.appeal = 1, directed = FALSE,
                        algorithm ="psumtree", start.graph = NULL)
   }
-  return(as.matrix(as_adj(g)))
+  return(as.matrix(igraph::as_adj(g)))
 }
 
 make_adj_matrix_small_world <- function(N, seed) {
   set.seed(seed)
-  g <- watts.strogatz.game(1, N, 2, 0.25, loops = FALSE, multiple = FALSE)
-  while (min(degree(g, V(g)))==0) {
-    g <- watts.strogatz.game(1, N, 2, 0.25, loops = FALSE, multiple = FALSE)
+  g <- igraph::watts.strogatz.game(1, N, 2, 0.25, loops = FALSE, multiple = FALSE)
+  while (min(igraph::degree(g, igraph::V(g)))==0) {
+    g <- igraph::watts.strogatz.game(1, N, 2, 0.25, loops = FALSE, multiple = FALSE)
   }
-  return(as.matrix(as_adj(g)))
+  return(as.matrix(igraph::as_adj(g)))
 }
 
 make_adj_matrix <- function(N, model, seed=NULL) {
@@ -421,40 +421,3 @@ make_adj_matrix_miss_ties <- function(adj_matrix,p,type,seed=NULL) {
          'nothing'=return(adj_matrix),
          'add'=return(make_adj_matrix_add(adj_matrix,p,seed)))
 }
-
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
