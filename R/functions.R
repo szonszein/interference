@@ -1,9 +1,10 @@
-library(memoise)
-library(data.table)
-library(igraph)
-library(stringi)
+#' @import memoise
+#' @import data.table
+#' @import igraph
+#' @import stringi
 
-make_tr_vec_permutation <- memoise(function(N,p,R,seed=NULL){
+#' @export
+make_tr_vec_permutation <- function(N,p,R,seed=NULL){
   set.seed(seed)
   tr_vec_sampled <- matrix(nrow=R,ncol=N)
   n_treated <- round(N*p)
@@ -22,9 +23,9 @@ make_tr_vec_permutation <- memoise(function(N,p,R,seed=NULL){
     tr_vec_sampled[i,] <- vec
   }
   return(tr_vec_sampled)
-})
+}
 
-
+#' @export
 make_adj_matrix_sq_lattice <- function(N){
   if (sqrt(N) != round(sqrt(N))) {
     stop(paste('N must be a square number, not', N))
@@ -33,6 +34,7 @@ make_adj_matrix_sq_lattice <- function(N){
   
 }
 
+#' @export
 make_adj_matrix_scale_free <- function(N, seed) {
   set.seed(seed)
   g <- igraph::barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
@@ -46,6 +48,7 @@ make_adj_matrix_scale_free <- function(N, seed) {
   return(as.matrix(igraph::as_adj(g)))
 }
 
+#' @export
 make_adj_matrix_small_world <- function(N, seed) {
   set.seed(seed)
   g <- igraph::watts.strogatz.game(1, N, 2, 0.25, loops = FALSE, multiple = FALSE)
@@ -55,12 +58,14 @@ make_adj_matrix_small_world <- function(N, seed) {
   return(as.matrix(igraph::as_adj(g)))
 }
 
+#' @export
 make_adj_matrix <- function(N, model, seed=NULL) {
   switch(model, 'sq_lattice'=return(make_adj_matrix_sq_lattice(N)),
          'scale_free'=return(make_adj_matrix_sq_lattice(N, seed)),
          'small_world'=return(make_adj_matrix_small_world(N, seed)))
 }
 
+#' @export
 make_exposure_map_AS <- function(adj_matrix, tr_vector, hop) {
   N <- nrow(adj_matrix)
   peer_exposure <- as.numeric(tr_vector%*%adj_matrix)
@@ -89,13 +94,14 @@ make_exposure_map_AS <- function(adj_matrix, tr_vector, hop) {
   }
 }
 
+#' @export
 make_corr_out <- function(degree, correlate, seed=NULL) {
   set.seed(seed) 
   switch(correlate, 'yes'= return(degree*abs(rnorm(length(degree))) + rnorm(length(degree),1,0.25)),
          'no' = return(abs(rnorm(length(degree)))))
 }
 
-
+#' @export
 make_dilated_out_1 <- function(adj_matrix,make_corr_out,multipliers=NULL,seed=NULL) {
   set.seed(seed)  
   if (is.null(multipliers)) {
@@ -113,6 +119,7 @@ make_dilated_out_1 <- function(adj_matrix,make_corr_out,multipliers=NULL,seed=NU
   
 }
 
+#' @export
 make_dilated_out_2 <- function(adj_matrix,make_corr_out,
                                multipliers=NULL,seed=NULL) {
   set.seed(seed)
@@ -133,6 +140,7 @@ make_dilated_out_2 <- function(adj_matrix,make_corr_out,
   
 } 
 
+#' @export
 make_dilated_out <- function(adj_matrix, make_corr_out, seed, hop, multipliers=NULL) {
   
   if (hop==1) {
@@ -143,7 +151,7 @@ make_dilated_out <- function(adj_matrix, make_corr_out, seed, hop, multipliers=N
   }
 }
 
-
+#' @export
 make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure_map_fn, exposure_map_fn_add_args=NULL) {
   exposure_map_fn_args <- c(list(adj_matrix, potential_tr_vector[1,]), exposure_map_fn_add_args)
   exposure_names <- colnames(do.call(exposure_map_fn, exposure_map_fn_args))
@@ -183,7 +191,7 @@ make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure
   
 })
 
-
+#' @export
 make_prob_exposure_cond <- function(prob_exposure) {
   
   k_exposure_names <- stri_split_fixed(str = names(prob_exposure$prob_exposure_k_k), pattern=',', simplify=T)[,1]
@@ -197,7 +205,7 @@ make_prob_exposure_cond <- function(prob_exposure) {
   return(prob_exposure_cond)
 }
 
-
+#' @export
 var_yT_ht_unadjusted <- function(obs_exposure,obs_outcome,prob_exposure) {
   
   
@@ -217,7 +225,7 @@ var_yT_ht_unadjusted <- function(obs_exposure,obs_outcome,prob_exposure) {
   return(var_yT)
 }
 
-
+#' @export
 var_yT_ht_A2_adjustment <- function(obs_exposure,obs_outcome,prob_exposure) {
   
   var_yT_A2 <- matrix(nrow = ncol(obs_exposure), dimnames=list(colnames(obs_exposure)))
@@ -234,6 +242,7 @@ var_yT_ht_A2_adjustment <- function(obs_exposure,obs_outcome,prob_exposure) {
   return(var_yT_A2)
 }
 
+#' @export
 var_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure) {
   var <- var_yT_ht_unadjusted(obs_exposure,obs_outcome,prob_exposure)
   A2 <- var_yT_ht_A2_adjustment(obs_exposure,obs_outcome,prob_exposure)
@@ -241,7 +250,7 @@ var_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure) {
   return(var_adjusted)
 }
 
-
+#' @export
 cov_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure, k_to_include=NULL, l_to_include=NULL) {
   
   cov_yT_A <- matrix(nrow = 2*choose(ncol(obs_exposure),2), dimnames=list(names(prob_exposure$prob_exposure_k_l)))
@@ -287,7 +296,7 @@ cov_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure, k_to_incl
   return(cov_yT_A)
 }
 
-
+#' @export
 estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop) {
   
   obs_outcome_by_exposure <- t(obs_exposure)%*%diag(obs_outcome)
@@ -361,7 +370,7 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
 
 
 
-
+#' @export
 naive_estimate <- memoise(function(obs_outcome_by_exposure, hop) {
   if (hop==1) { 
     yT_treat <- sum((1/p)*colSums(obs_outcome_by_exposure[c('dir_ind1', 'isol_dir'),], na.rm = T))
@@ -377,7 +386,7 @@ naive_estimate <- memoise(function(obs_outcome_by_exposure, hop) {
   }  
 })
 
-
+#' @export
 make_adj_matrix_trunc <-memoise(function(adj_matrix,p,seed=NULL) {
   set.seed(seed)
   m <- adj_matrix
@@ -391,7 +400,7 @@ make_adj_matrix_trunc <-memoise(function(adj_matrix,p,seed=NULL) {
   m[lower.tri(m,diag=FALSE)] <- m[upper.tri(m,diag=FALSE)]
   return(m)
 })
-
+#' @export
 make_adj_matrix_add <-memoise(function(adj_matrix,p,seed=NULL) {
   #  p, as passed, should be the approximate proportion of the existing edges to add
   
@@ -409,7 +418,7 @@ make_adj_matrix_add <-memoise(function(adj_matrix,p,seed=NULL) {
   m[lower.tri(m,diag=FALSE)] <- m[upper.tri(m,diag=FALSE)]
   return(m)
 })
-
+#' @export
 make_adj_matrix_miss_ties <- function(adj_matrix,p,type,seed=NULL) {
   if (p==0 & type!='nothing') {
     stop('If p=0, type must be nothing')
