@@ -89,14 +89,14 @@ make_exposure_map_AS <- function(adj_matrix, tr_vector, hop) {
   }
 }
 
-make_corr_out <- memoise(function(degree, correlate, seed=NULL) {
+make_corr_out <- function(degree, correlate, seed=NULL) {
   set.seed(seed) 
   switch(correlate, 'yes'= return(degree*abs(rnorm(length(degree))) + rnorm(length(degree),1,0.25)),
          'no' = return(abs(rnorm(length(degree)))))
-})
+}
 
 
-make_dilated_out_1 <- memoise(function(adj_matrix,make_corr_out,multipliers=NULL,seed=NULL) {
+make_dilated_out_1 <- function(adj_matrix,make_corr_out,multipliers=NULL,seed=NULL) {
   set.seed(seed)  
   if (is.null(multipliers)) {
     multipliers=c(2,1.5,1.25)
@@ -111,9 +111,9 @@ make_dilated_out_1 <- memoise(function(adj_matrix,make_corr_out,multipliers=NULL
   rownames(potential_out) <- c('dir_ind1', 'isol_dir', 'ind1','no')
   return(potential_out)
   
-})
+}
 
-make_dilated_out_2 <- memoise(function(adj_matrix,make_corr_out,
+make_dilated_out_2 <- function(adj_matrix,make_corr_out,
                                multipliers=NULL,seed=NULL) {
   set.seed(seed)
   if (is.null(multipliers)) {
@@ -131,9 +131,9 @@ make_dilated_out_2 <- memoise(function(adj_matrix,make_corr_out,
   rownames(potential_out) <- c('dir_ind1_ind2', 'dir_ind1', 'dir_ind2', 'isol_dir', 'ind1_ind2', 'ind1', 'ind2', 'no')
   return(potential_out)
   
-} )
+} 
 
-make_dilated_out <- memoise(function(adj_matrix, make_corr_out, seed, hop, multipliers=NULL) {
+make_dilated_out <- function(adj_matrix, make_corr_out, seed, hop, multipliers=NULL) {
   
   if (hop==1) {
     return(make_dilated_out_1(adj_matrix, make_corr_out,multipliers=multipliers, seed=seed))
@@ -141,7 +141,7 @@ make_dilated_out <- memoise(function(adj_matrix, make_corr_out, seed, hop, multi
   if (hop==2) {
     return(make_dilated_out_2(adj_matrix, make_corr_out, multipliers=multipliers, seed=seed))
   }
-})
+}
 
 
 make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure_map_fn, exposure_map_fn_add_args=NULL) {

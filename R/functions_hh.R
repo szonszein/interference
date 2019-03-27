@@ -1,6 +1,7 @@
 library(data.table)
 library(memoise)
 
+
 make_dilated_out_hh <- function(N, out=function(x) abs(rnorm(x)), multipliers=NULL,seed=NULL) {
   set.seed(seed)  
   if (is.null(multipliers)) {
@@ -30,14 +31,14 @@ make_group_labels <- function(N,G) {
   
 make_tr_assignement <- function(group,c,k) {
   G <- length(unique(group))  
-  group_tr <- as.list(make_tr_vec_permutation(G,c,R=1))
+  group_tr <- as.list(forget(make_tr_vec_permutation)(G,c,R=1))
   names(group_tr) <- unique(group)
   
   indiv_tr <- rep(NA, length(group))
   for (i in unique(group)) {
     n <- sum(group==i)
     p <- k[group_tr[[i]] + 1]
-    indiv_tr[which(group==i)] <- make_tr_vec_permutation(n,p,R=1) 
+    indiv_tr[which(group==i)] <- forget(make_tr_vec_permutation)(n,p,R=1) 
   }
   
   group_tr <- as.data.frame(unlist(group_tr))
@@ -49,7 +50,7 @@ make_tr_assignement <- function(group,c,k) {
   return(tr_assign)
 }
 
-make_tr_vec_permutation_hierarchical <- memoise(function(group,c,k,R,seed=NULL){
+make_tr_vec_permutation_hierarchical <- function(group,c,k,R,seed=NULL){
   set.seed(seed) # c is proportion of groups assigned to psi
   tr_vec_sampled <- vector('list', R)
   G <- length(unique(group))  
@@ -67,7 +68,7 @@ make_tr_vec_permutation_hierarchical <- memoise(function(group,c,k,R,seed=NULL){
     tr_vec_sampled[[i]] <- vec
   }
   return(tr_vec_sampled)
-})
+}
 
 make_tr_condition <- function(tr_assignement) {
   N <- nrow(tr_assignement)
