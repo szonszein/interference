@@ -30,7 +30,7 @@ make_adj_matrix_sq_lattice <- function(N){
   if (sqrt(N) != round(sqrt(N))) {
     stop(paste('N must be a square number, not', N))
   }
-  return(as.matrix(igraph::as_adj(igraph::graph.lattice(c(sqrt(N),sqrt(N)), circular = F))))
+  return(as.matrix(igraph::as_adj(igraph::graph.lattice(c(sqrt(N),sqrt(N)), circular = TRUE))))
   
 }
 
@@ -194,7 +194,7 @@ make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure
 #' @export
 make_prob_exposure_cond <- function(prob_exposure) {
   
-  k_exposure_names <- stri_split_fixed(str = names(prob_exposure$prob_exposure_k_k), pattern=',', simplify=T)[,1]
+  k_exposure_names <- stringi::stri_split_fixed(str = names(prob_exposure$prob_exposure_k_k), pattern=',', simplify=T)[,1]
   
   prob_exposure_cond <- matrix(nrow = length(k_exposure_names), ncol = N)
   for (j in 1:length(prob_exposure$prob_exposure_k_k)) {
