@@ -2,6 +2,8 @@
 #' @import data.table
 #' @import igraph
 #' @import stringi
+#' @import randnet
+#' @import combinat
 
 #' @export
 make_tr_vec_permutation <- function(N,p,R,seed=NULL){
@@ -30,18 +32,18 @@ make_adj_matrix_sq_lattice <- function(N){
   if (sqrt(N) != round(sqrt(N))) {
     stop(paste('N must be a square number, not', N))
   }
-  return(as.matrix(igraph::as_adj(igraph::graph.lattice(c(sqrt(N),sqrt(N)), circular = F))))
+  return(as.matrix(igraph::as_adj(igraph::graph.lattice(c(sqrt(N),sqrt(N)), circular = TRUE))))
   
 }
 
 #' @export
 make_adj_matrix_scale_free <- function(N, seed) {
   set.seed(seed)
-  g <- igraph::barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
+  g <- igraph::barabasi.game(N, power = 0.6, m = 5, out.dist = NULL, out.seq = NULL,
                      out.pref = FALSE, zero.appeal = 1, directed = FALSE,
                      algorithm ="psumtree", start.graph = NULL)
   while (min(igraph::degree(g, igraph::V(g)))==0) {
-    g <- igraph::barabasi.game(N, power = 1.2, m = NULL, out.dist = NULL, out.seq = NULL,
+    g <- igraph::barabasi.game(N, power = 0.6, m = 5, out.dist = NULL, out.seq = NULL,
                        out.pref = FALSE, zero.appeal = 1, directed = FALSE,
                        algorithm ="psumtree", start.graph = NULL)
   }
@@ -58,11 +60,26 @@ make_adj_matrix_small_world <- function(N, seed) {
   return(as.matrix(igraph::as_adj(g)))
 }
 
+
+#' @export
+make_adj_matrix_dcbm <- function(N,seed) {
+  set.seed(seed)
+  dt <- randnet::BlockModel.Gen(10,N,K=10,beta=0.2,rho=0.9,simple=FALSE,power=TRUE,alpha=3.5)
+  A2 <- dt$A%*%dt$A
+  A2[which(A2>1)] <-1
+  diag(A2) <- rep(0, nrow(A2))
+  while (min(rowSums(dt$A))==0 | min(rowSums(A2))==0) {
+  dt <- randnet::BlockModel.Gen(10,N,K=10,beta=0.2,rho=0.9,simple=FALSE,power=TRUE,alpha=3.5) 
+  }
+  return(dt$A)
+}
+
 #' @export
 make_adj_matrix <- function(N, model, seed=NULL) {
   switch(model, 'sq_lattice'=return(make_adj_matrix_sq_lattice(N)),
-         'scale_free'=return(make_adj_matrix_sq_lattice(N, seed)),
-         'small_world'=return(make_adj_matrix_small_world(N, seed)))
+         'scale_free'=return(make_adj_matrix_scale_free(N, seed)),
+         'small_world'=return(make_adj_matrix_small_world(N, seed)),
+         'dcbm'=return(make_adj_matrix_dcbm(N,seed)))
 }
 
 #' @export
@@ -78,6 +95,7 @@ make_exposure_map_AS <- function(adj_matrix, tr_vector, hop) {
   }
   if (hop==2) {
     adj_matrix_sq <- adj_matrix%*%adj_matrix # number of length two paths from i to j
+    adj_matrix_sq[which(adj_matrix_sq>1)] <-1
     diag(adj_matrix_sq) <- rep(0, nrow(adj_matrix_sq))
     adj_matrix_2 <- adj_matrix_sq
     
@@ -95,9 +113,9 @@ make_exposure_map_AS <- function(adj_matrix, tr_vector, hop) {
 }
 
 #' @export
-make_corr_out <- function(degree, correlate, seed=NULL) {
+make_corr_out <- function(degree, degree2, correlate, seed=NULL) {
   set.seed(seed) 
-  switch(correlate, 'yes'= return(degree*abs(rnorm(length(degree))) + rnorm(length(degree),1,0.25)),
+  switch(correlate, 'yes'= return((degree + degree2 + degree*degree2)*abs(rnorm(length(degree))) + rnorm(length(degree),1,0.25)),
          'no' = return(abs(rnorm(length(degree)))))
 }
 
@@ -110,8 +128,14 @@ make_dilated_out_1 <- function(adj_matrix,make_corr_out,multipliers=NULL,seed=NU
   if (length(multipliers)!=3) {
     stop('Needs 3 multipliers')
   }
+  
   degree <- rowSums(adj_matrix)
-  baseline_out <- make_corr_out(degree, 'yes', seed=seed)
+  nei2 <- adj_matrix%*%adj_matrix
+  nei2[which(nei2>1)] <-1
+  diag(nei2) <- rep(0, nrow(nei2))
+  degree2 <- rowSums(nei2)
+  
+  baseline_out <- make_corr_out(degree, degree2, 'yes', seed=seed)
   potential_out <- rbind(multipliers[1]*baseline_out, multipliers[2]*baseline_out,
                          multipliers[3]*baseline_out, baseline_out)
   rownames(potential_out) <- c('dir_ind1', 'isol_dir', 'ind1','no')
@@ -129,8 +153,14 @@ make_dilated_out_2 <- function(adj_matrix,make_corr_out,
   if (length(multipliers)!=7) {
     stop('Needs 7 multipliers')
   }
+  
   degree <- rowSums(adj_matrix)
-  baseline_out <- make_corr_out(degree, 'yes', seed=seed)
+  nei2 <- adj_matrix%*%adj_matrix
+  nei2[which(nei2>1)] <-1
+  diag(nei2) <- rep(0, nrow(nei2))
+  degree2 <- rowSums(nei2)
+  
+  baseline_out <- make_corr_out(degree, degree2, 'yes', seed=seed)
   potential_out <- rbind(multipliers[1]*baseline_out, multipliers[2]*baseline_out,
                          multipliers[3]*baseline_out, multipliers[4]*baseline_out,
                          multipliers[5]*baseline_out, multipliers[6]*baseline_out,
@@ -187,14 +217,14 @@ make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure
     }
   }
   
-  return(list(prob_exposure_k_k=prob_exposure_k_k, prob_exposure_k_l=prob_exposure_k_l))
+  return(list(I_exposure=I_exposure, prob_exposure_k_k=prob_exposure_k_k, prob_exposure_k_l=prob_exposure_k_l))
   
 })
 
 #' @export
 make_prob_exposure_cond <- function(prob_exposure) {
   
-  k_exposure_names <- stri_split_fixed(str = names(prob_exposure$prob_exposure_k_k), pattern=',', simplify=T)[,1]
+  k_exposure_names <- stringi::stri_split_fixed(str = names(prob_exposure$prob_exposure_k_k), pattern=',', simplify=T)[,1]
   
   prob_exposure_cond <- matrix(nrow = length(k_exposure_names), ncol = N)
   for (j in 1:length(prob_exposure$prob_exposure_k_k)) {
@@ -297,7 +327,95 @@ cov_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure, k_to_incl
 }
 
 #' @export
-estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop) {
+fit_avg_outcome_lm <- function(obs_exposure,obs_outcome, obs_prob_exposure){
+  pi_ <- lapply(obs_prob_exposure$prob_exposure_k_k, diag)
+  names(pi_) <- stringi::stri_split_fixed(str = names(pi_), pattern=',', simplify=T)[,1]
+  
+  pi_df <- do.call(cbind.data.frame, pi_)
+  names(pi_df) <- paste0('pi_', names(pi_df))
+  
+  
+  inv_pi_df <- 1 / (obs_exposure * pi_df)
+  inv_pi_df[!sapply(inv_pi_df, is.finite)] <- 0
+  wts <- rowSums(inv_pi_df)
+  
+  model_df <- as.data.frame(obs_exposure)
+  model_df <- cbind(model_df, pi_df)
+  model_df$obs_outcome <- obs_outcome
+  
+  lm1 <- lm(obs_outcome ~ ., data=model_df,weights = wts)
+  
+  obs_options <- rep(list(c(0, 1)), ncol(obs_exposure))
+  names(obs_options) <-   colnames(obs_exposure)
+  obs_options
+  
+  indicator_columns <- data.frame(do.call(
+    rbind,
+    c(
+      list(rep(0, ncol(obs_exposure)-1)),
+      unique(combinat::permn(
+        c(1,rep(0, ncol(obs_exposure)-2)))
+      )
+    )
+  ))
+  colnames(indicator_columns) <- colnames(obs_exposure)[1:ncol(obs_exposure)-1]
+  
+  average_outcomes_df <- merge(
+    indicator_columns,
+    pi_df,
+    by=NULL
+  )
+  
+  average_outcomes_df[[colnames(obs_exposure)[ncol(obs_exposure)]]] <- NA_real_
+  
+  average_outcomes_df$y_hat <- predict(lm1, newdata=average_outcomes_df)
+  average_outcomes_df <- data.table(average_outcomes_df)
+  
+  return(list(
+    means=average_outcomes_df[, .(y=mean(y_hat)), by=eval(colnames(indicator_columns))],
+    model=lm1
+  )
+  
+  )
+}
+
+#' @export
+var_yT_ht_const_eff_lm <- function(obs_exposure,obs_outcome,obs_prob_exposure,n_var_permutations=1000) {
+  
+  #if (n_var_permutations > ncol(obs_prob_exposure$I_exposure$dir_ind1)) {
+   # stop('n_var_permutations must be smaller or equal to R, the number of permutations to compute exposure probabilities')
+  #}
+  
+  lm1 <- fit_avg_outcome_lm(obs_exposure,obs_outcome,obs_prob_exposure)$model
+  
+  residuals1 <- obs_outcome - predict(lm1)
+  
+  means_iter <- list()  
+  for (i in 1:n_var_permutations) {
+    obs_exposure_iter <- do.call(cbind.data.frame, lapply(obs_prob_exposure$I_exposure,function(x) x[,i]))
+    this_means <- fit_avg_outcome_lm(obs_exposure_iter,residuals1,obs_prob_exposure)$means
+    this_means$iter <- i
+    means_iter[[i]] <- this_means
+  }
+  means_iter <- rbindlist(means_iter)
+  
+  
+  ix <- apply(means_iter[,1:(ncol(means_iter)-1)],1,function(x) which(as.logical(x)))
+  ix <- lapply(ix, function(x) ifelse(length(x)==0, ncol(means_iter), x))
+  
+  means_iter$exposure <- colnames(obs_exposure)[unlist(ix)]
+  means_iter <- dcast(means_iter,iter ~ exposure, value.var='y')
+  means_iter <- subset(means_iter, select=-c(iter))
+  
+  var <- unlist(lapply(means_iter, var))
+  
+  return(list(means=means_iter, var_yT_ht_const_eff=var))
+  
+}
+
+
+#' @export
+estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, n_var_permutations=10, hop) {
   
   obs_outcome_by_exposure <- t(obs_exposure)%*%diag(obs_outcome)
   obs_outcome_by_exposure[t(obs_exposure)==0] <- NA
@@ -319,6 +437,14 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
   
   var_yT_h <- var_yT_ht_adjusted(obs_exposure,resid_h,obs_prob_exposure)
   
+  const_eff <- var_yT_ht_const_eff_lm(obs_exposure,obs_outcome,obs_prob_exposure, n_var_permutations)
+  
+  var_yT_ht_const_eff <- const_eff$var_yT_ht_const_eff
+  
+  diffs <- const_eff$means - const_eff$means$no
+  diffs <- subset(diffs, select=-c(no))
+  
+  var_tau_ht_const_eff <- unlist(lapply(diffs, var))
   
   
   if (hop==1) { 
@@ -327,6 +453,7 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
                                     k_to_include = c('dir_ind1', 'isol_dir', 'ind1'), l_to_include = 'no')
     cov_yT_h <- cov_yT_ht_adjusted(obs_exposure,resid_h,obs_prob_exposure,
                                    k_to_include = c('dir_ind1', 'isol_dir', 'ind1'), l_to_include = 'no' )
+  
     
     remove <- 'no'
     keep <- c('dir_ind1,no', 'isol_dir,no', 'ind1,no')
@@ -336,6 +463,7 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
     
     var_tau_h <- (1/N^2)*(var_yT_h[!rownames(var_yT_h) %in% remove, ] + var_yT_h[rownames(var_yT_h) %in% remove, ] -
                             2*cov_yT_h[rownames(cov_yT_h) %in% keep, ])
+    
   }
   
   if (hop==2) { 
@@ -345,6 +473,7 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
     cov_yT_h <- cov_yT_ht_adjusted(obs_exposure,resid_h,obs_prob_exposure,
                                    k_to_include =  c('dir_ind1_ind2', 'dir_ind1', 'dir_ind2', 'isol_dir',
                                                      'ind1_ind2', 'ind1', 'ind2'), l_to_include = 'no' )
+
     
     remove <- 'no'
     keep <- c('dir_ind1_ind2,no', 'dir_ind1,no', 'dir_ind2,no',
@@ -362,10 +491,13 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, hop)
   tau_ht <- (1/N)*(yT_ht-yT_ht['no'])[names(yT_ht)!='no']
   tau_h <- (mu_h-mu_h['no'])[names(mu_h)!='no']
   
+  var_tau_ht_max <- pmax(var_tau_ht[order(names(var_tau_ht))], var_tau_ht_const_eff[order(names(var_tau_ht_const_eff))])
+  
   tau_dsm <- (rowMeans(obs_outcome_by_exposure, na.rm = T)-rowMeans(obs_outcome_by_exposure, na.rm = T)['no'])[names(yT_ht)!='no']
   
   
-  return(list(yT_ht=yT_ht, yT_h=yT_h, tau_ht=tau_ht, tau_h=tau_h, tau_dsm=tau_dsm, var_tau_ht=var_tau_ht, var_tau_h=var_tau_h))
+  return(list(yT_ht=yT_ht, yT_h=yT_h, tau_ht=tau_ht, tau_h=tau_h, tau_dsm=tau_dsm, var_tau_ht=var_tau_ht,
+              var_tau_h=var_tau_h, var_tau_ht_const_eff=var_tau_ht_const_eff, var_tau_ht_max=var_tau_ht_max))
 })
 
 
@@ -400,6 +532,7 @@ make_adj_matrix_trunc <-memoise(function(adj_matrix,p,seed=NULL) {
   m[lower.tri(m,diag=FALSE)] <- m[upper.tri(m,diag=FALSE)]
   return(m)
 })
+
 #' @export
 make_adj_matrix_add <-memoise(function(adj_matrix,p,seed=NULL) {
   #  p, as passed, should be the approximate proportion of the existing edges to add
@@ -418,6 +551,7 @@ make_adj_matrix_add <-memoise(function(adj_matrix,p,seed=NULL) {
   m[lower.tri(m,diag=FALSE)] <- m[upper.tri(m,diag=FALSE)]
   return(m)
 })
+
 #' @export
 make_adj_matrix_miss_ties <- function(adj_matrix,p,type,seed=NULL) {
   if (p==0 & type!='nothing') {
