@@ -6,18 +6,24 @@
 #' @import combinat
 
 #' @export
-make_tr_vec_permutation <- function(N,p,R,seed=NULL){
+make_tr_vec_permutation <- function(N,p,R,seed=NULL,allow_repetitions=FALSE){
   set.seed(seed)
-  tr_vec_sampled <- matrix(nrow=R,ncol=N)
   n_treated <- round(N*p)
-  
-  if (R > choose(N,n_treated)) {
-    stop(paste("R must be smaller than", choose(N,n_treated),", the number of possible treatment assignements"))
+
+  max_R <- choose(N,n_treated)
+  if ((R > max_R) & (allow_repetitions==FALSE)){
+    R <- max_R
+    warning(
+      paste("R is larger than the number of possible treatment assignements truncating to",
+            max_R
+            )
+    )
   }
+  tr_vec_sampled <- matrix(nrow=R,ncol=N)
   
   for (i in 1:R) {
     vec <- sample(c(rep(1,n_treated),rep(0, N-n_treated)))
-    while (any(duplicated(rbind(vec, tr_vec_sampled[1:i-1,]))))
+    while (any(duplicated(rbind(vec, tr_vec_sampled[1:i-1,]))) & (allow_repetitions==FALSE))
     {
       vec <- sample(c(rep(1,n_treated),rep(0, N-n_treated)))
       
@@ -182,6 +188,40 @@ make_dilated_out <- function(adj_matrix, make_corr_out, seed, hop, multipliers=N
 }
 
 #' @export
+make_dilated_out_from_out <- function(outcomes, hop, multipliers=NULL) {
+  if (hop==1) {
+    
+    if (is.null(multipliers)) {
+      multipliers=c(2,1.5,1.25)
+    }
+    if (length(multipliers)!=3) {
+      stop('Needs 3 multipliers')
+    }
+    baseline_out <- outcomes
+    potential_out <- rbind(multipliers[1]*baseline_out, multipliers[2]*baseline_out,
+                           multipliers[3]*baseline_out, baseline_out)
+    rownames(potential_out) <- c('dir_ind1', 'isol_dir', 'ind1','no')
+    return(potential_out)
+  }
+  
+  if (hop==2) {
+    if (is.null(multipliers)) {
+      multipliers=c(2.25,2,1.75,1.5,1.375,1.25,1.125)
+    }
+    if (length(multipliers)!=7) {
+      stop('Needs 7 multipliers')
+    }
+    baseline_out <- outcomes
+    potential_out <- rbind(multipliers[1]*baseline_out, multipliers[2]*baseline_out,
+                           multipliers[3]*baseline_out, multipliers[4]*baseline_out,
+                           multipliers[5]*baseline_out, multipliers[6]*baseline_out,
+                           multipliers[7]*baseline_out, baseline_out)
+    rownames(potential_out) <- c('dir_ind1_ind2', 'dir_ind1', 'dir_ind2', 'isol_dir', 'ind1_ind2', 'ind1', 'ind2', 'no')
+    return(potential_out)
+  }
+}
+
+#' @export
 make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure_map_fn, exposure_map_fn_add_args=NULL) {
   exposure_map_fn_args <- c(list(adj_matrix, potential_tr_vector[1,]), exposure_map_fn_add_args)
   exposure_names <- colnames(do.call(exposure_map_fn, exposure_map_fn_args))
@@ -207,8 +247,8 @@ make_exposure_prob <- memoise(function(potential_tr_vector, adj_matrix, exposure
   prob_exposure_k_l <- list()
   for (i in 1:length(I_exposure)) {
     for (j in 1:length(I_exposure)){
-      prob_exposure_k_k[[paste(names(I_exposure)[[i]],names(I_exposure)[[i]],sep=',')]] <- (I_exposure[[i]]%*%t(I_exposure[[i]]) + diag(N))/(R+1)
-      
+        prob_exposure_k_k[[paste(names(I_exposure)[[i]],names(I_exposure)[[i]],sep=',')]] <- (I_exposure[[i]]%*%t(I_exposure[[i]]) + diag(N))/(R+1)
+
       if (j!=i) {
         prob_exposure_k_l[[paste(names(I_exposure)[[i]],names(I_exposure)[[j]],sep=',')]] <- (I_exposure[[i]]%*%t(I_exposure[[j]]))/R
         
@@ -434,18 +474,23 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, n_va
   resid_h <- colSums((obs_outcome_by_exposure-mu_h), na.rm=T) # pass resid_h instead of obs_outcome to var, cov
   
   var_yT_ht <- var_yT_ht_adjusted(obs_exposure,obs_outcome,obs_prob_exposure)
+  var_yT_ht[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
   
   var_yT_h <- var_yT_ht_adjusted(obs_exposure,resid_h,obs_prob_exposure)
+  var_yT_h[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
   
   const_eff <- var_yT_ht_const_eff_lm(obs_exposure,obs_outcome,obs_prob_exposure, n_var_permutations)
-  
+ 
   var_yT_ht_const_eff <- const_eff$var_yT_ht_const_eff
-  
+ 
   diffs <- const_eff$means - const_eff$means$no
+ 
   diffs <- subset(diffs, select=-c(no))
   
   var_tau_ht_const_eff <- unlist(lapply(diffs, var))
-  
+  # Count all of the cells which are not NA
+  obs_outcome_by_exposure_na_conditions <- names(which(rowSums(!is.na(obs_outcome_by_exposure)) == 0))
+  var_tau_ht_const_eff[obs_outcome_by_exposure_na_conditions] <- NA
   
   if (hop==1) { 
     
@@ -491,12 +536,16 @@ estimates <- memoise(function(obs_exposure, obs_outcome, obs_prob_exposure, n_va
   tau_ht <- (1/N)*(yT_ht-yT_ht['no'])[names(yT_ht)!='no']
   tau_h <- (mu_h-mu_h['no'])[names(mu_h)!='no']
   
+  if (!setequal(names(var_tau_ht), names(var_tau_ht_const_eff))){
+    warning("var_tau_ht and var_tau_ht_const_eff do not have the same names, var_tau_ht_max may be incorrect")
+  }
   var_tau_ht_max <- pmax(var_tau_ht[order(names(var_tau_ht))], var_tau_ht_const_eff[order(names(var_tau_ht_const_eff))])
   
   tau_dsm <- (rowMeans(obs_outcome_by_exposure, na.rm = T)-rowMeans(obs_outcome_by_exposure, na.rm = T)['no'])[names(yT_ht)!='no']
   
   
-  return(list(yT_ht=yT_ht, yT_h=yT_h, tau_ht=tau_ht, tau_h=tau_h, tau_dsm=tau_dsm, var_tau_ht=var_tau_ht,
+  return(list(yT_ht=yT_ht, yT_h=yT_h, var_yT_ht=var_yT_ht, var_yT_h=var_yT_h, cov_yT_ht=cov_yT_ht, cov_yT_h=cov_yT_h,
+              tau_ht=tau_ht, tau_h=tau_h, tau_dsm=tau_dsm, var_tau_ht=var_tau_ht,
               var_tau_h=var_tau_h, var_tau_ht_const_eff=var_tau_ht_const_eff, var_tau_ht_max=var_tau_ht_max))
 })
 
