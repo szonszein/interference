@@ -1,4 +1,5 @@
-# interference
+# *interference*: An R package for design-based estimation of spillover effects
+
 ## To install the interference package
 
 Get an auth token from https://github.com/settings/tokens (remember to tick "repo" access), then run:
