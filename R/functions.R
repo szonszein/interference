@@ -70,13 +70,7 @@ make_adj_matrix_small_world <- function(N, seed) {
 #' @export
 make_adj_matrix_dcbm <- function(N,seed) {
   set.seed(seed)
-  dt <- randnet::BlockModel.Gen(10,N,K=10,beta=0.2,rho=0.9,simple=FALSE,power=TRUE,alpha=3.5)
-  A2 <- dt$A%*%dt$A
-  A2[which(A2>1)] <-1
-  diag(A2) <- rep(0, nrow(A2))
-  while (min(rowSums(dt$A))==0 | min(rowSums(A2))==0) {
-  dt <- randnet::BlockModel.Gen(10,N,K=10,beta=0.2,rho=0.9,simple=FALSE,power=TRUE,alpha=3.5) 
-  }
+  dt <- randnet::BlockModel.Gen(4,N,K=4,beta=(3/7),rho=0.9,simple=FALSE,power=TRUE,alpha=3.5)
   return(dt$A)
 }
 
@@ -412,7 +406,7 @@ fit_avg_outcome_lm <- function(obs_exposure,obs_outcome, obs_prob_exposure){
   average_outcomes_df <- data.table(average_outcomes_df)
   
   return(list(
-    means=average_outcomes_df[, .(y=mean(y_hat)), by=eval(colnames(indicator_columns))],
+    means=average_outcomes_df[, .(y=mean(y_hat,na.rm = TRUE)), by=eval(colnames(indicator_columns))],
     model=lm1
   )
   
