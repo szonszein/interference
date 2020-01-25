@@ -1,10 +1,18 @@
 Package: interference
-Title: Causal estimators under interference
-Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Title: Design-Based Estimation of Spillover Effects
+Version: 0.1.0
+Authors@R: c(
+person("Stephanie", "Zonszein", email = "stephanie.zonszein@gmail.com", role = c("aut", "cre")),
+person("Cyrus", "Samii", email = "cdsamii@gmail.com", role = "aut"),
+person("Peter", "Aronow", email = "peteraronow@gmail.com", role = "aut"))
+Description: Design-based estimation of spillover effects in R. It estimates
+    treatment effects and spillover effects under interference in the context of randomized
+    experiments using the method of Aronow and Samii (2017, AOAS) for arbitrary but known
+    interference networks, and the method of Hudgens and Halloran (2008, JASA) for the case
+    where the interference network is unknown, but interference is limited to occurring within
+    well-defined and non-overlapping groups.
 Depends: R (>= 3.5.0), data.table
-License: What license is it under?
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: igraph,
@@ -13,8 +21,9 @@ Imports: igraph,
     memoise,
     randnet,
     combinat
-RoxygenNote: 6.0.1
+RoxygenNote: 7.0.2
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE) 

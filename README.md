@@ -17,8 +17,8 @@ Then in R:
 devtools::install('/path/to/interference/')
 ```
 
-For version 0.1.0-alpha which is compatible with the version used in "Spillover Effects in Experimental Data" (Aronow et al., 2020) available on arXiv.org and forthcoming in Advances in Experimental Political Science, J. N. Druckman and D. P. Green, eds. Cambridge University Press:
+Version 0.1.0 is the latest compatible with the version used in "Spillover Effects in Experimental Data" (Aronow et al., 2020) available on arXiv.org and forthcoming in Advances in Experimental Political Science, J. N. Druckman and D. P. Green, eds. Cambridge University Press:
 
 ```
-devtools::install_github('szonszein/interference', ref='0.1.0-alpha')
+devtools::install_github('szonszein/interference', ref='0.1.0')
 ```
