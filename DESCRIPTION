@@ -2,9 +2,9 @@ Package: interference
 Title: Design-Based Estimation of Spillover Effects
 Version: 0.1.0
 Authors@R: c(
-person("Stephanie", "Zonszein", email = "stephanie.zonszein@gmail.com", role = c("aut", "cre")),
-person("Cyrus", "Samii", email = "cdsamii@gmail.com", role = "aut"),
-person("Peter", "Aronow", email = "peteraronow@gmail.com", role = "aut"))
+    person("Stephanie", "Zonszein", email = "stephanie.zonszein@gmail.com", role = c("aut", "cre")),
+    person("Cyrus", "Samii", email = "cdsamii@gmail.com", role = "aut"),
+    person("Peter", "Aronow", email = "peteraronow@gmail.com", role = "aut"))
 Description: Design-based estimation of spillover effects in R. It estimates
     treatment effects and spillover effects under interference in the context of randomized
     experiments using the method of Aronow and Samii (2017, AOAS) for arbitrary but known
