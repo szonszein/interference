@@ -25,6 +25,7 @@ RoxygenNote: 7.0.2
 Suggests: 
     knitr,
     rmarkdown,
-    markdown
+    markdown,
+    igraphdata
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE) 
