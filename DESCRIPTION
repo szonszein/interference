@@ -24,6 +24,7 @@ Imports: igraph,
 RoxygenNote: 7.0.2
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    markdown
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE) 
