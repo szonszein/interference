@@ -168,10 +168,10 @@ estimates_hierarchical <- function(estimator_data) {
 
 
 #' @export
-make_estimator_data <- function(tr_assignement, potential_outcomes) {
-  tr_condition <- make_tr_condition(tr_assignement)
+make_estimator_data <- function(tr_assignment, potential_outcomes) {
+  tr_condition <- make_tr_condition(tr_assignment)
   obs_outcome <- rowSums(tr_condition * t(potential_outcomes))
   estimator_data <-
-    cbind(tr_assignement, as.data.frame(obs_outcome))
+    cbind(tr_assignment, as.data.frame(obs_outcome))
   return(estimator_data)
 }
