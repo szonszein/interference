@@ -46,10 +46,10 @@
 #'
 #'  Aronow, P.M. et al. (2020). [Spillover effects in experimental
 #'  data](https://arxiv.org/abs/2001.05444). *arXiv preprint*, arXiv:2001.05444.
-make_tr_condition <- function(tr_assignement) {
-  N <- nrow(tr_assignement)
-  group_tr <- tr_assignement[, 'group_tr']
-  indiv_tr <- tr_assignement[, 'indiv_tr']
+make_tr_condition <- function(tr_assignment) {
+  N <- nrow(tr_assignment)
+  group_tr <- tr_assignment[, 'group_tr']
+  indiv_tr <- tr_assignment[, 'indiv_tr']
   return(matrix(as.numeric(
     c(
       group_tr > 0 & indiv_tr > 0,

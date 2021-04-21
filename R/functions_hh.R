@@ -103,11 +103,11 @@ make_tr_vec_permutation_hierarchical_miss <- function(region,group,c,k,R,seed=NU
 }
 
 #' @export
-make_tr_condition_miss <- function(tr_assignement) {
-  N <- nrow(tr_assignement)
-  region_tr <- tr_assignement[, 'region_tr']
-  group_tr <- tr_assignement[, 'group_tr']
-  indiv_tr <- tr_assignement[, 'indiv_tr']
+make_tr_condition_miss <- function(tr_assignment) {
+  N <- nrow(tr_assignment)
+  region_tr <- tr_assignment[, 'region_tr']
+  group_tr <- tr_assignment[, 'group_tr']
+  indiv_tr <- tr_assignment[, 'indiv_tr']
   return(matrix(as.numeric(c(region_tr==1 & group_tr>0 & indiv_tr>0,
                              region_tr==0.5 & group_tr>0 & indiv_tr>0,
                              region_tr==0.5 & group_tr==0 & indiv_tr>0,
@@ -121,10 +121,10 @@ make_tr_condition_miss <- function(tr_assignement) {
 }
 
 #' @export
-make_estimator_data_miss <- function(tr_assignement, potential_outcomes) {
-  tr_condition <- make_tr_condition_miss(tr_assignement)
+make_estimator_data_miss <- function(tr_assignment, potential_outcomes) {
+  tr_condition <- make_tr_condition_miss(tr_assignment)
   obs_outcome <- rowSums(tr_condition*t(potential_outcomes))
-  estimator_data <- cbind(tr_assignement, as.data.frame(obs_outcome)) 
+  estimator_data <- cbind(tr_assignment, as.data.frame(obs_outcome)) 
   return(estimator_data)
 }
 
