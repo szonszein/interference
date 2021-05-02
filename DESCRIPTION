@@ -26,6 +26,8 @@ Suggests:
     knitr,
     rmarkdown,
     markdown,
-    igraphdata
+    igraphdata,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE) 
+Config/testthat/edition: 3

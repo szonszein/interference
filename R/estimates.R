@@ -163,10 +163,10 @@ estimates <-
      effect_estimators  <- c(effect_estimators, 'horvitz-thompson')
     }
 
-    if ('max_ht_const' %in% variance_estimators) & !('constant_effect' %in% variance_estimators) {
+    if (('max_ht_const' %in% variance_estimators) & !('constant_effect' %in% variance_estimators)) {
       variance_estimators <- c(variance_estimators, 'constant_effect')
     }
-    if ('max_ht_const' %in% variance_estimators) & !('horvitz-thompson' %in% variance_estimators) {
+    if (('max_ht_const' %in% variance_estimators) & !('horvitz-thompson' %in% variance_estimators)) {
       variance_estimators <- c(variance_estimators, 'horvitz-thompson')
 
     }
