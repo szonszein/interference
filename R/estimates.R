@@ -34,6 +34,12 @@
 #'   `10`, but must be smaller or equal to `R`, the number of permutations to
 #'   compute exposure probabilities. Recommended is `1000`, when `R` \eqn{>
 #'   1000}.
+#' @param effect_estimators string vector with names of estimators to be estimated
+#' among 'hajek', 'horvitz-thompson'. Default is both.
+#' @param variance_estimators string vector with names of variance estimators
+#' to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
+#' 'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
+#' or 'max_ht_const' signficantly increases the running time.
 #' @param hop number; either `1` or `2`. Must be `1` if argument `hop = 1` in
 #'   function \code{\link{make_exposure_map_AS}} which assumes first-degree
 #'   interference and produces four exposure conditions. Must be `2` if argument
@@ -150,7 +156,7 @@ estimates <-
                    obs_prob_exposure,
                    n_var_permutations = 10,
                    effect_estimators = c('hajek', 'horvitz-thompson'),
-                   variance_estimators = c('hajek', 'horvitz-thompson', 'constant_effect', 'max_ht_const'),
+                   variance_estimators = c('hajek', 'horvitz-thompson'),
                    hop) {
 
     if (('hajek' %in% variance_estimators) & ! ('hajek' %in% effect_estimators)) {
