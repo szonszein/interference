@@ -33,11 +33,11 @@ test_that("estimates()", {
                                 )
     )
     est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, hop=1)
-    expect_setequal(names(est), c('yT_ht',
+    expect_setequal(names(est), c(
+      'yT_ht',
       'yT_h',
       'var_yT_ht',
       'var_yT_h',
-      'var_tau_ht_const_eff',
       'cov_yT_ht',
       'var_tau_ht',
       'cov_yT_h',
@@ -45,7 +45,6 @@ test_that("estimates()", {
       'var_tau_ht',
       'tau_ht',
       'tau_h',
-      'var_tau_ht_max',
       'tau_dsm'
       ))
 
