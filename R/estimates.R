@@ -45,6 +45,12 @@
 #'   interference and produces four exposure conditions. Must be `2` if argument
 #'   `hop = 2` in function \code{\link{make_exposure_map_AS}} which assumes
 #'   second-degree interference and produces eight exposure conditions.
+#' @param effect_estimators string vector with names of estimators to be estimated
+#' among 'hajek', 'horvitz-thompson'. Default is both.
+#' @param variance_estimators string vector with names of variance estimators
+#' to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
+#' 'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
+#' or 'max_ht_const' signficantly increases the running time.
 #' @export
 #' @references Aronow, P. M. (2013). [Model assisted causal
 #'   inference](https://search.proquest.com/docview/1567045106?accountid=12768).
