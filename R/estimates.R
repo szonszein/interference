@@ -95,7 +95,7 @@
 #'                                         make_exposure_map_AS,
 #'                                         list(hop=1))
 #'
-#' Estimate exposure-specific causal effects and their variance:
+#' # Estimate exposure-specific causal effects and their variance:
 #'
 #' estimates(obs_exposure, obs_outcome, obs_prob_exposure,
 #'                                      n_var_permutations = 30,
@@ -647,7 +647,7 @@ var_yT_ht_const_eff_lm <- function(obs_exposure,obs_outcome,obs_prob_exposure,n_
 #'                                         adj_matrix,
 #'                                         make_exposure_map_full_neighborhood)
 #'
-#' Estimate exposure-specific causal effects and their variance:
+#' # Estimate exposure-specific causal effects and their variance:
 #'
 #' estimators_full_neighborhood(obs_exposure_full_nei, obs_outcome_full_nei,
 #'           obs_prob_exposure_full_nei,
