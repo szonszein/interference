@@ -4,7 +4,7 @@
 \alias{make_tr_condition}
 \title{Create treatment conditions under a two-stage hierarchical design.}
 \usage{
-make_tr_condition(tr_assignement)
+make_tr_condition(tr_assignment)
 }
 \arguments{
 \item{tr_assignment}{data frame of \code{N} observations and the variables:
