@@ -29,8 +29,9 @@
 #'   off-diagonal, and zeroes on the diagonal. When K = 4, the number of numeric
 #'   matrices is 12; \eqn{permutation(4,2)}.} } Such list is returned by
 #'   function \code{\link{make_exposure_prob}}.
-#' @param n_var_permutations number of tratment permutations to estimate the
-#'   constant effects variance estimator derived in Aronow (2013). Default is
+#' @param n_var_permutations if `'constant_effect'` (derived in Aronow (2013)) 
+#'   is one of the variance estimators specified, the number of treatment 
+#'   permutations used to estimate this estimator. Default is
 #'   `10`, but must be smaller or equal to `R`, the number of permutations to
 #'   compute exposure probabilities. Recommended is `1000`, when `R` \eqn{>
 #'   1000}.
@@ -45,12 +46,6 @@
 #'   interference and produces four exposure conditions. Must be `2` if argument
 #'   `hop = 2` in function \code{\link{make_exposure_map_AS}} which assumes
 #'   second-degree interference and produces eight exposure conditions.
-#' @param effect_estimators string vector with names of estimators to be estimated
-#' among 'hajek', 'horvitz-thompson'. Default is both.
-#' @param variance_estimators string vector with names of variance estimators
-#' to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
-#' 'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
-#' or 'max_ht_const' signficantly increases the running time.
 #' @export
 #' @references Aronow, P. M. (2013). [Model assisted causal
 #'   inference](https://search.proquest.com/docview/1567045106?accountid=12768).
