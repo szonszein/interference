@@ -66,10 +66,10 @@ condition.
 adj_matrix <- make_adj_matrix(N = 9, model = 'sq_lattice')
 multipliers <- c(2, 1.5, 1.25)
 make_dilated_out(adj_matrix, make_corr_out, seed = 357,
-  multipliers = multipliers, hop = 1)
+multipliers = multipliers, hop = 1)
 multipliers <- c(2.25,2,1.75,1.5,1.375,1.25,1.125)
 make_dilated_out(adj_matrix, make_corr_out, seed = 357,
-  multipliers = multipliers, hop = 2)
+multipliers = multipliers, hop = 2)
 multiplier <- 4
 make_dilated_out_full_neighborhood(adj_matrix, make_corr_out,
                                    multipliers=multiplier,

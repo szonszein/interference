@@ -10,6 +10,8 @@ estimates(
   obs_outcome,
   obs_prob_exposure,
   n_var_permutations = 10,
+  effect_estimators = c("hajek", "horvitz-thompson"),
+  variance_estimators = c("hajek", "horvitz-thompson"),
   hop
 )
 
@@ -48,6 +50,14 @@ constant effects variance estimator derived in Aronow (2013). Default is
 \code{10}, but must be smaller or equal to \code{R}, the number of permutations to
 compute exposure probabilities. Recommended is \code{1000}, when \code{R} \eqn{>
   1000}.}
+
+\item{effect_estimators}{string vector with names of estimators to be estimated
+among 'hajek', 'horvitz-thompson'. Default is both.}
+
+\item{variance_estimators}{string vector with names of variance estimators
+to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
+'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
+or 'max_ht_const' signficantly increases the running time.}
 
 \item{hop}{number; either \code{1} or \code{2}. Must be \code{1} if argument \code{hop = 1} in
 function \code{\link{make_exposure_map_AS}} which assumes first-degree
