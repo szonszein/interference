@@ -29,8 +29,9 @@
 #'   off-diagonal, and zeroes on the diagonal. When K = 4, the number of numeric
 #'   matrices is 12; \eqn{permutation(4,2)}.} } Such list is returned by
 #'   function \code{\link{make_exposure_prob}}.
-#' @param n_var_permutations number of tratment permutations to estimate the
-#'   constant effects variance estimator derived in Aronow (2013). Default is
+#' @param n_var_permutations if `'constant_effect'` (derived in Aronow (2013)) 
+#'   is one of the variance estimators specified, the number of treatment 
+#'   permutations used to estimate this estimator. Default is
 #'   `10`, but must be smaller or equal to `R`, the number of permutations to
 #'   compute exposure probabilities. Recommended is `1000`, when `R` \eqn{>
 #'   1000}.
@@ -100,7 +101,7 @@
 #'                                         make_exposure_map_AS,
 #'                                         list(hop=1))
 #'
-#' Estimate exposure-specific causal effects and their variance:
+#' # Estimate exposure-specific causal effects and their variance:
 #'
 #' estimates(obs_exposure, obs_outcome, obs_prob_exposure,
 #'                                      n_var_permutations = 30,
@@ -599,7 +600,7 @@ var_yT_ht_const_eff_lm <- function(obs_exposure,obs_outcome,obs_prob_exposure,n_
 #'                                         adj_matrix,
 #'                                         make_exposure_map_full_neighborhood)
 #'
-#' Estimate exposure-specific causal effects and their variance:
+#' # Estimate exposure-specific causal effects and their variance:
 #'
 #' estimators_full_neighborhood(obs_exposure_full_nei, obs_outcome_full_nei,
 #'           obs_prob_exposure_full_nei,
