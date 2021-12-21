@@ -43,61 +43,80 @@
 #'   containing joint probabilities across exposure conditions k and l on the
 #'   off-diagonal, and zeroes on the diagonal. When K = 4, the number of numeric
 #'   matrices is 12; \eqn{permutation(4,2)}.}}
-make_exposure_prob <-
-  memoise(function(potential_tr_vector,
-                   adj_matrix,
-                   exposure_map_fn,
-                   exposure_map_fn_add_args = NULL) {
+make_exposure_prob <-  memoise(function(potential_tr_vector,
+                                adj_matrix,
+                                exposure_map_fn,
+                                exposure_map_fn_add_args = NULL,
+                                i_start = NULL,
+                                i_end = NULL) {
+  exposure_map_fn_args <-
+    c(list(adj_matrix, potential_tr_vector[1, ]),
+      exposure_map_fn_add_args)
+  exposure_names <-
+    colnames(do.call(exposure_map_fn, exposure_map_fn_args))
+  n_exposure_conditions <- length(exposure_names)
+  
+  
+  R <- nrow(potential_tr_vector)
+  N <- ncol(potential_tr_vector)
+  
+  
+  if ((is.null(i_start)) & (is.null(i_end))) {
+    i_start <-1
+    i_end <- N
+  }
+  
+  # TODO: do not recreate I_exposure everytime
+  I_exposure <- list()
+  for (i in 1:n_exposure_conditions) {
+    I_exposure[[i]] <- matrix(nrow = N, ncol = R)
+  }
+  names(I_exposure) <- exposure_names
+  
+  
+  for (i in 1:R) {
     exposure_map_fn_args <-
-      c(list(adj_matrix, potential_tr_vector[1,]),
+      c(list(adj_matrix, potential_tr_vector[i, ]),
         exposure_map_fn_add_args)
-    exposure_names <-
-      colnames(do.call(exposure_map_fn, exposure_map_fn_args))
-    n_exposure_conditions <- length(exposure_names)
-    R <- nrow(potential_tr_vector)
-    N <- ncol(potential_tr_vector)
-    I_exposure <- list()
-    for (i in 1:n_exposure_conditions) {
-      I_exposure[[i]] <- matrix(nrow = N, ncol = R)
+    potential_exposure <-
+      do.call(exposure_map_fn, exposure_map_fn_args)
+    for (j in 1:ncol(potential_exposure)) {
+      I_exposure[[j]][, i] <- potential_exposure[, j]
     }
-    names(I_exposure) <- exposure_names
-    
-    
-    for (i in 1:R) {
-      exposure_map_fn_args <-
-        c(list(adj_matrix, potential_tr_vector[i,]),
-          exposure_map_fn_add_args)
-      potential_exposure <-
-        do.call(exposure_map_fn, exposure_map_fn_args)
-      for (j in 1:ncol(potential_exposure)) {
-        I_exposure[[j]][, i] <- potential_exposure[, j]
-      }
-    }
-    
-    prob_exposure_k_k <- list()
-    prob_exposure_k_l <- list()
-    for (i in 1:length(I_exposure)) {
-      for (j in 1:length(I_exposure)) {
-        prob_exposure_k_k[[paste(names(I_exposure)[[i]], names(I_exposure)[[i]], sep =
-                                   ',')]] <-
-          (I_exposure[[i]] %*% t(I_exposure[[i]]) + diag(N)) / (R + 1)
-        
-        if (j != i) {
-          prob_exposure_k_l[[paste(names(I_exposure)[[i]], names(I_exposure)[[j]], sep =
-                                     ',')]] <-
-            (I_exposure[[i]] %*% t(I_exposure[[j]])) / R
-          
-        }
-        
-      }
-    }
-    
-    return(
-      list(
-        I_exposure = I_exposure,
-        prob_exposure_k_k = prob_exposure_k_k,
-        prob_exposure_k_l = prob_exposure_k_l
+  }
+  
+  
+  
+  
+  prob_exposure_k_k <- list()
+  prob_exposure_k_l <- list()
+  for (i in 1:length(I_exposure)) {
+    for (j in 1:length(I_exposure)) {
+      #TODO: calculate this only if j==i
+      diagonal_ones <- rbind(
+        matrix(0, nrow=(i_start-1), ncol=i_end-i_start+1),
+        diag(i_end-i_start+1), 
+        matrix(0, nrow=N-(i_end), ncol=i_end-i_start+1)
       )
+      prob_exposure_k_k[[paste(names(I_exposure)[[i]], names(I_exposure)[[i]], sep =
+                                 ',')]] <-
+        t(( I_exposure[[i]] %*% t(I_exposure[[i]])[,i_start:i_end] + diagonal_ones) / (R + 1))
+      
+      if (j != i) {
+        prob_exposure_k_l[[paste(names(I_exposure)[[i]], names(I_exposure)[[j]], sep =
+                                   ',')]] <-
+          t((I_exposure[[i]] %*% t(I_exposure[[j]])[,i_start:i_end]) / R)
+        
+      }
+      
+    }
+  }
+  
+  return(
+    list(
+      I_exposure = I_exposure,
+      prob_exposure_k_k = prob_exposure_k_k,
+      prob_exposure_k_l = prob_exposure_k_l
     )
-    
-  })
+  )
+})
