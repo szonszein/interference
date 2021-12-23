@@ -360,7 +360,6 @@ var_yT_ht_unadjusted <- function(obs_exposure,obs_outcome,prob_exposure) {
     
     mm <- cond_indicator %o% cond_indicator * (pi_k - ind_kk %o% ind_kk)/pi_k * (obs_outcome %o% obs_outcome) / (ind_kk %o% ind_kk)
     mm[!is.finite(mm)] <- 0
-    
     second_part_sum <- sum(mm)
     
     var_yT[k,] <- second_part_sum
@@ -385,6 +384,10 @@ var_yT_ht_A2_adjustment <- function(obs_exposure,obs_outcome,prob_exposure) {
     m <- cond_indicator*(obs_outcome^2)/(2*ind_kk)
     A2_part_sum <- sum(outer(m, m, FUN='+') * (pi_k == 0) * (!diag(length(m))) )
     var_yT_A2[k,] <- A2_part_sum
+
+
+    
+    
   }
   return(var_yT_A2)
 }

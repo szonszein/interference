@@ -11,11 +11,15 @@ make_exposure_prob_individual <-
     
     R <- dim(prob_exposure$I_exposure[[1]])[2]
     
+    
+    #  For each of the exposure conditions in prob_exposure$I_exposure
     prob_exposure_cond <-
       do.call(rbind, lapply(
         prob_exposure$I_exposure,
+        #  Use drop=FALSE to keep a matrix (not a vector) so that 
+        #  rowSums works if i_start==i_end
         FUN = function(x)
-          (rowSums(x[i_start:i_end, ]) + 1) / (R + 1)
+          (rowSums(x[i_start:i_end, , drop=FALSE]) + 1) / (R + 1)
       ))
     
     return(prob_exposure_cond)
@@ -30,8 +34,7 @@ estimates_batch <- function(obs_exposure,
                             exposure_map_fn,
                             exposure_map_fn_add_args = NULL,
                             n_var_permutations = 10,
-                            batch_size = NA,
-                            hop) {
+                            batch_size = NA) {
   out <- list()
   
   N <- nrow(obs_exposure)
@@ -52,8 +55,11 @@ estimates_batch <- function(obs_exposure,
     matrix(NA,
            nrow = ncol(obs_exposure),
            dimnames = list(colnames(obs_exposure)))
+  #  Matrix of adjustments to the variance, initalized at zero because
+  #  it is only ever summed with the variance; if the variance is undefined,
+  #  the sum will be too
   var_yT_A2 <-
-    matrix(NA,
+    matrix(0,
            nrow = ncol(obs_exposure),
            dimnames = list(colnames(obs_exposure)))
   cov_yT_A <-
@@ -66,11 +72,21 @@ estimates_batch <- function(obs_exposure,
   if (is.null(l_to_include)) {
     l_to_include <- colnames(obs_exposure)
   }
+  
+
+  #  Calculate the point estimates, variances, and covariances for one batch at
+  #  a time.
   for (i in seq(1, (N), by = batch_size)) {
+    #  The batch goes from unit i to unit j, so loop over the starting `i`s
+    #  and calculate the ending `j`s, which are always `batch_size` more
+    #  except for the final one, which cannot be larger than N
     j <- i + batch_size - 1
     if (j > N) {
       j <- N
     }
+    
+
+    
     #TODO: deal with non-divisible batch sizes
     
     obs_prob_exposure <-
@@ -98,6 +114,7 @@ estimates_batch <- function(obs_exposure,
     #  TODO: reuse the single obs_prob_exposure_individual_kk above for all_ind_kk
     all_ind_kk <- make_exposure_prob_individual(obs_prob_exposure)
     
+    # k indexes the exposure conditions
     for (k in colnames(obs_exposure)) {
       ## Unadjusted variance
       pi_k <-
@@ -117,12 +134,12 @@ estimates_batch <- function(obs_exposure,
       
       
       # variance adjustment  A2
-      m <- cond_indicator[i:j] * (obs_outcome[i:j] ^ 2) / (2 * ind_kk[i:j])
-      A2_part_sum <-
-        sum(outer(m, m, FUN = '+') * (pi_k[i:j, i:j] == 0) * (!diag(length(m))))
+      m <- cond_indicator*(obs_outcome^2)/(2*ind_kk)
       
-      #  If there are no units in this condition, the variance remains NA
-      if (is.na(var_yT_A2[k, ]) & any(cond_indicator[i:j] ==1)) {var_yT_A2[k, ] <-0}
+      A2_part_sum <-
+        sum(outer(m[i:j], m, FUN = '+') * (pi_k == 0) * (!diag(length(m)))[i:j,] )
+      
+    
       var_yT_A2[k, ] <- var_yT_A2[k, ] + A2_part_sum
       
       
@@ -172,7 +189,10 @@ estimates_batch <- function(obs_exposure,
       
     }
     
+
+    
   }
+  
   var_yT_ht_adjusted <- var_yT + var_yT_A2
   
   yT_ht <- running_yT_ht
