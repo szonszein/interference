@@ -10,7 +10,10 @@ estimates(
   obs_outcome,
   obs_prob_exposure,
   n_var_permutations = 10,
-  hop
+  effect_estimators = c("hajek", "horvitz-thompson"),
+  variance_estimators = c("hajek", "horvitz-thompson"),
+  control_condition = NULL,
+  treated_conditions = NULL
 )
 
 estimators_full_neighborhood(
@@ -43,17 +46,32 @@ off-diagonal, and zeroes on the diagonal. When K = 4, the number of numeric
 matrices is 12; \eqn{permutation(4,2)}.} } Such list is returned by
 function \code{\link{make_exposure_prob}}.}
 
-\item{n_var_permutations}{number of tratment permutations to estimate the
-constant effects variance estimator derived in Aronow (2013). Default is
+\item{n_var_permutations}{if \code{'constant_effect'} (derived in Aronow (2013))
+is one of the variance estimators specified, the number of treatment
+permutations used to estimate this estimator. Default is
 \code{10}, but must be smaller or equal to \code{R}, the number of permutations to
 compute exposure probabilities. Recommended is \code{1000}, when \code{R} \eqn{>
   1000}.}
 
-\item{hop}{number; either \code{1} or \code{2}. Must be \code{1} if argument \code{hop = 1} in
-function \code{\link{make_exposure_map_AS}} which assumes first-degree
-interference and produces four exposure conditions. Must be \code{2} if argument
-\code{hop = 2} in function \code{\link{make_exposure_map_AS}} which assumes
-second-degree interference and produces eight exposure conditions.}
+\item{effect_estimators}{string vector with names of estimators to be estimated
+among 'hajek', 'horvitz-thompson'. Default is both.}
+
+\item{variance_estimators}{string vector with names of variance estimators
+to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
+'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
+or 'max_ht_const' signficantly increases the running time.}
+
+\item{control_condition}{string specifying the name of the single condition to be
+considered the pure control condition (present in
+\code{names(obs_prob_exposure$I_exposure)}.
+For the Aronow-Samii exposure mappings returned by \code{make_exposure_map_AS},
+the control condition is \code{'no'}.}
+
+\item{treated_conditions}{string vector specifying the names of the conditions
+(present in \code{names(obs_prob_exposure$I_exposure)}) which are not the pure
+control condition. Default is NULL; in which case
+all of the conditions in \verb{names(obs_prob_exposure$I_exposure) other} than
+\code{control_condition} are considered treated.}
 }
 \value{
 A list of 13 lists: \describe{ \item{\code{yT_ht}:}{A named numeric vector
@@ -170,7 +188,7 @@ obs_prob_exposure <- make_exposure_prob(potential_tr_vector,
 
 estimates(obs_exposure, obs_outcome, obs_prob_exposure,
                                      n_var_permutations = 30,
-                                     hop = 1)
+                                     control_condition = 'no')
 # Create adjacency matrix and treatment vector to
 # produce observed exposure conditions according to the
 # "full neighborhood" exposure mapping:

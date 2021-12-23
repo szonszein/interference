@@ -32,7 +32,7 @@ test_that("estimates()", {
                                     no=matrix(c(1, 1, 0, 0, 0, 1), ncol=2, nrow=3 )
                                 )
     )
-    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, hop=1)
+    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, control_condition='no')
     expect_setequal(names(est), c(
       'yT_ht',
       'yT_h',
@@ -49,7 +49,7 @@ test_that("estimates()", {
       ))
 
       
-    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, hop=1, effect_estimators='hajek', variance_estimators='hajek')
+    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, control_condition='no', effect_estimators='hajek', variance_estimators='hajek')
     expect_setequal(names(est), c(
       'yT_h',
       'var_yT_h',
@@ -59,7 +59,7 @@ test_that("estimates()", {
       'tau_dsm'
       ))
 
-    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, hop=1, effect_estimators='horvitz-thompson', variance_estimators='horvitz-thompson')
+    est <- estimates(obs_exposure_test, obs_outcome_test, prob_exposure_test, n_var_permutations = 2, control_condition='no', effect_estimators='horvitz-thompson', variance_estimators='horvitz-thompson')
     expect_setequal(names(est), c(
       'yT_ht',
       'var_yT_ht',

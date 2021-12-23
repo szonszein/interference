@@ -107,8 +107,8 @@ obs_prob_exposure <- make_exposure_prob(potential_tr_vector, adj_matrix, make_ex
 ```
 
 
-```{r, message=FALSE, warning=FALSE}
-my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, hop=1) 
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
+my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, control_condition='no') 
 ```
 
 The return value of this function contains the values of a number of different estimators:
@@ -147,7 +147,7 @@ obs_prob_exposure <- make_exposure_prob(potential_tr_vector, adj_matrix, make_ex
 
 
 ```{r, message=FALSE, warning=FALSE}
-my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, hop=2) 
+my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, control_condition='no') 
 ```
 
 Get the values of the Horvitz-Thompson estimators and their variances:
