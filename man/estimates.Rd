@@ -46,8 +46,9 @@ off-diagonal, and zeroes on the diagonal. When K = 4, the number of numeric
 matrices is 12; \eqn{permutation(4,2)}.} } Such list is returned by
 function \code{\link{make_exposure_prob}}.}
 
-\item{n_var_permutations}{number of tratment permutations to estimate the
-constant effects variance estimator derived in Aronow (2013). Default is
+\item{n_var_permutations}{if \code{'constant_effect'} (derived in Aronow (2013))
+is one of the variance estimators specified, the number of treatment
+permutations used to estimate this estimator. Default is
 \code{10}, but must be smaller or equal to \code{R}, the number of permutations to
 compute exposure probabilities. Recommended is \code{1000}, when \code{R} \eqn{>
   1000}.}
