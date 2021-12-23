@@ -41,11 +41,22 @@
 #' to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
 #' 'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
 #' or 'max_ht_const' signficantly increases the running time.
-#' @param hop number; either `1` or `2`. Must be `1` if argument `hop = 1` in
-#'   function \code{\link{make_exposure_map_AS}} which assumes first-degree
-#'   interference and produces four exposure conditions. Must be `2` if argument
-#'   `hop = 2` in function \code{\link{make_exposure_map_AS}} which assumes
-#'   second-degree interference and produces eight exposure conditions.
+#' @param control_condition string specifying the name of the single condition to be
+#'   considered the pure control condition (present in 
+#'   `names(obs_prob_exposure$I_exposure)`. 
+#'   For the Aronow-Samii exposure mappings returned by `make_exposure_map_AS`,
+#'   the control condition is `'no'`.
+#' @param treated_conditions string vector specifying the names of the conditions
+#'   (present in `names(obs_prob_exposure$I_exposure)`) which are not the pure 
+#'   control condition. Default is NULL; in which case
+#'   all of the conditions in `names(obs_prob_exposure$I_exposure) other` than
+#'   `control_condition` are considered treated.
+#' @param effect_estimators string vector with names of estimators to be estimated
+#' among 'hajek', 'horvitz-thompson'. Default is both.
+#' @param variance_estimators string vector with names of variance estimators
+#' to be estimated among 'hajek', 'horvitz-thompson', 'constant_effect',
+#' 'max_ht_const'. Default includes the first two. Estimating 'constant_effect'
+#' or 'max_ht_const' signficantly increases the running time.
 #' @export
 #' @references Aronow, P. M. (2013). [Model assisted causal
 #'   inference](https://search.proquest.com/docview/1567045106?accountid=12768).
@@ -94,7 +105,7 @@
 #'
 #' estimates(obs_exposure, obs_outcome, obs_prob_exposure,
 #'                                      n_var_permutations = 30,
-#'                                      hop = 1)
+#'                                      control_condition = 'no')
 #' @return A list of 13 lists: \describe{ \item{`yT_ht`:}{A named numeric vector
 #'   which contains the values of the Horvitz-Thompson estimator of the total of
 #'   potential outcomes under each exposure condition as derived in Equation 1
@@ -152,13 +163,19 @@
 #'   \item{`var_tau_ht_max`:}{A named numeric vector which contains the maximum
 #'   between `var_tau_h` and `var_tau_ht_const_eff`.} }
 estimates <-
-  memoise(function(obs_exposure,
+  function(obs_exposure,
                    obs_outcome,
                    obs_prob_exposure,
                    n_var_permutations = 10,
                    effect_estimators = c('hajek', 'horvitz-thompson'),
                    variance_estimators = c('hajek', 'horvitz-thompson'),
-                   hop) {
+                   control_condition=NULL,
+                   treated_conditions=NULL
+                   ) {
+
+    if (!is.null(control_condition) & is.null(treated_conditions)) {
+      treated_conditions <- setdiff(names(obs_prob_exposure$I_exposure), control_condition)
+    }
 
     if (('hajek' %in% variance_estimators) & ! ('hajek' %in% effect_estimators)) {
      effect_estimators  <- c(effect_estimators, 'hajek')
@@ -256,9 +273,8 @@ estimates <-
     
     
    
-    if (hop == 1) {
-      remove <- 'no'
-      keep <- c('dir_ind1,no', 'isol_dir,no', 'ind1,no')
+
+
 
       if (('horvitz-thompson' %in% variance_estimators)) {
         cov_yT_ht <-
@@ -266,13 +282,13 @@ estimates <-
             obs_exposure,
             obs_outcome,
             obs_prob_exposure,
-            k_to_include = c('dir_ind1', 'isol_dir', 'ind1'),
-            l_to_include = 'no'
+            k_to_include = treated_conditions,
+            l_to_include = control_condition
           )
         out[['cov_yT_ht']] <- cov_yT_ht
         var_tau_ht <-
-        (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% remove,] + var_yT_ht[rownames(var_yT_ht) %in% remove,] -
-                         2 * cov_yT_ht[rownames(cov_yT_ht) %in% keep,])
+        (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% control_condition,] + var_yT_ht[rownames(var_yT_ht) %in% control_condition,] -
+                         2 * cov_yT_ht[rownames(cov_yT_ht) %in% paste(treated_conditions, control_condition, sep=','),])
         out[['var_tau_ht']] <- var_tau_ht
       }
       if (('hajek' %in% variance_estimators)) {
@@ -281,75 +297,17 @@ estimates <-
             obs_exposure,
             resid_h,
             obs_prob_exposure,
-            k_to_include = c('dir_ind1', 'isol_dir', 'ind1'),
-            l_to_include = 'no'
+            k_to_include = treated_conditions,
+            l_to_include = control_condition
           )
       out[['cov_yT_h']] <- cov_yT_h
       var_tau_h <-
-        (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% remove,] + var_yT_h[rownames(var_yT_h) %in% remove,] -
-                         2 * cov_yT_h[rownames(cov_yT_h) %in% keep,])
+        (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% control_condition,] + var_yT_h[rownames(var_yT_h) %in% control_condition,] -
+                         2 * cov_yT_h[rownames(cov_yT_h) %in% paste(treated_conditions, control_condition, sep=','),])
  
       out[['var_tau_h']] <- var_tau_h
       }
-    }
-    
-    if (hop == 2) {
-      remove <- 'no'
-      keep <- c(
-        'dir_ind1_ind2,no',
-        'dir_ind1,no',
-        'dir_ind2,no',
-        'isol_dir,no',
-        'ind1_ind2,no',
-        'ind1,no',
-        'ind2,no'
-      )
-      if (('horvitz-thompson' %in% variance_estimators)) {
-        cov_yT_ht <-
-          cov_yT_ht_adjusted(
-            obs_exposure,
-            obs_outcome,
-            obs_prob_exposure,
-            k_to_include = c(
-              'dir_ind1_ind2',
-              'dir_ind1',
-              'dir_ind2',
-              'isol_dir',
-              'ind1_ind2',
-              'ind1',
-              'ind2'
-            ),
-            l_to_include = 'no'
-          )
-        var_tau_ht <-
-        (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% remove,] + var_yT_ht[rownames(var_yT_ht) %in% remove,] -
-                         2 * cov_yT_ht[rownames(cov_yT_ht) %in% keep,])
-
-        out[['var_tau_ht']] <- var_tau_ht
-      }
-      if (('hajek' %in% variance_estimators)) {
-        cov_yT_h <-
-          cov_yT_ht_adjusted(
-            obs_exposure,
-            resid_h,
-            obs_prob_exposure,
-            k_to_include =  c(
-              'dir_ind1_ind2',
-              'dir_ind1',
-              'dir_ind2',
-              'isol_dir',
-              'ind1_ind2',
-              'ind1',
-              'ind2'
-            ),
-            l_to_include = 'no'
-          )
-          var_tau_h <-
-        (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% remove,] + var_yT_h[rownames(var_yT_h) %in% remove,] -
-                         2 * cov_yT_h[rownames(cov_yT_h) %in% keep,])
-          out[['var_tau_h']] <- var_tau_h
-      }
-    }
+  
     
     
     if (('horvitz-thompson' %in% variance_estimators)) {
@@ -380,7 +338,7 @@ estimates <-
     
     
     return(out)
-  })
+  }
 
 
 #' @rdname estimates
@@ -700,15 +658,15 @@ estimators_full_neighborhood <-
     
     var_tau_ht_const_eff <- unlist(lapply(diffs, var))
     
-    remove <- 'all_control'
+    control_condition <- 'all_control'
     keep <- c('all_treat,all_control')
     
     var_tau_ht <-
-      (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% remove,] + var_yT_ht[rownames(var_yT_ht) %in% remove,] -
+      (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% control_condition,] + var_yT_ht[rownames(var_yT_ht) %in% control_condition,] -
                        2 * cov_yT_ht[rownames(cov_yT_ht) %in% keep,])
     
     var_tau_h <-
-      (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% remove,] + var_yT_h[rownames(var_yT_h) %in% remove,] -
+      (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% control_condition,] + var_yT_h[rownames(var_yT_h) %in% control_condition,] -
                        2 * cov_yT_h[rownames(cov_yT_h) %in% keep,])
     
     var_tau_ht_max <-
