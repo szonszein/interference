@@ -84,10 +84,7 @@ estimates_batch <- function(obs_exposure,
     if (j > N) {
       j <- N
     }
-    
-
-    
-    #TODO: deal with non-divisible batch sizes
+  
     
     obs_prob_exposure <-
       make_exposure_prob(
@@ -163,17 +160,21 @@ estimates_batch <- function(obs_exposure,
             cov_yT_A[kl,] <- 0
           }
           cov_yT_A[kl,] <- cov_yT_A[kl,] + sum(mm)
+
           
           # TODO: Batch this part
           second_part_cov <- 0
+          # Using x and y instead of i and j because those are already being used for the batching
           for (x in 1:nrow(pi_k_l)) {
             for (y in 1:ncol(pi_k_l)) {
               if (pi_k_l[x, y] == 0) {
+
                 second_part_cov_x_y <-
-                  ((cond_indicator[x] * obs_outcome[x] ^ 2 / (2 * ind_kk[x])) + (
-                    cond_indicator_l[y] * obs_outcome[y] ^ 2 / (2 * ind_ll[y])
+                  (
+                    (cond_indicator[i+x-1] * obs_outcome[i+x-1] ^ 2 / (2 * ind_kk[i+x-1])) + 
+                    (cond_indicator_l[y] * obs_outcome[y] ^ 2 / (2 * ind_ll[y]))
                   )
-                  )
+                
                 second_part_cov <-
                   second_part_cov + second_part_cov_x_y
                 
@@ -181,6 +182,7 @@ estimates_batch <- function(obs_exposure,
             }
             
           }
+
           cov_yT_A[kl,] <- cov_yT_A[kl,] - second_part_cov
           
         }
