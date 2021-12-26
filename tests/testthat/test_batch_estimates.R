@@ -1,4 +1,6 @@
-hop <- 1
+local_setup<-function(env=parent.frame()){
+  with(env, {
+  hop <- 1
 n_var_permutations <- 30
 exposure_map_fn <- make_exposure_map_AS
 exposure_map_fn_add_args <- list(hop = 1)
@@ -39,92 +41,97 @@ non_batch_estimates <-
       obs_outcome,
       obs_prob_exposure,
       n_var_permutations = n_var_permutations,
-      hop = hop
+      control_condition='no'
     )
   )
 
+# Remove estimates which are not produced in batch mode
+
+non_batch_estimates <- non_batch_estimates[setdiff(names(non_batch_estimates), c("var_tau_ht_max", "var_tau_ht_const_eff", "tau_dsm"))]
+})
+}
+
 test_that("batch estimates produce same results as non-batch, with batch_size=N", {
+  local_setup()
 
   batch_estimates <- estimates_batch(
-    obs_exposure,
-    obs_outcome,
-    obs_prob_exposure,
-    potential_tr_vector,
-    adj_matrix,
+    obs_exposure=obs_exposure,
+    obs_outcome=obs_outcome,
+    obs_prob_exposure=obs_prob_exposure,
+    potential_tr_vector=potential_tr_vector,
+    adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
     exposure_map_fn_add_args = exposure_map_fn_add_args,
     n_var_permutations = n_var_permutations,
+    control_condition='no'
   
   )
   
  
-  expect_equal(batch_estimates$yT_ht, non_batch_estimates$yT_ht)
-  expect_equal(batch_estimates$var_yT_ht, non_batch_estimates$var_yT_ht)
-  expect_equal(batch_estimates$cov_yT_ht, non_batch_estimates$cov_yT_ht)
-               
+  expect_equal(sort(unlist(batch_estimates)), sort(unlist(non_batch_estimates)))
+
 })
 
 test_that("batch estimates produce same results as non-batch, with batch_size=1", {
+  local_setup()
   
   batch_estimates <- estimates_batch(
-    obs_exposure,
-    obs_outcome,
-    obs_prob_exposure,
-    potential_tr_vector,
-    adj_matrix,
+    obs_exposure=obs_exposure,
+    obs_outcome=obs_outcome,
+    obs_prob_exposure=obs_prob_exposure,
+    potential_tr_vector=potential_tr_vector,
+    adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
     exposure_map_fn_add_args = exposure_map_fn_add_args,
     n_var_permutations = n_var_permutations,
-    batch_size=1
+    batch_size=1,
+    control_condition='no'
+    
   )
   
-  expect_equal(batch_estimates$yT_ht, non_batch_estimates$yT_ht)
-  expect_equal(batch_estimates$var_yT_ht, non_batch_estimates$var_yT_ht)
-  expect_equal(batch_estimates$cov_yT_ht, non_batch_estimates$cov_yT_ht)
-  
+  expect_equal(sort(unlist(batch_estimates)), sort(unlist(non_batch_estimates)))
 })
 
 test_that("batch estimates produce same results as non-batch, with batch_size=3 (divisible by N)", {
+  local_setup()
   
   batch_estimates <- estimates_batch(
-    obs_exposure,
-    obs_outcome,
-    obs_prob_exposure,
-    potential_tr_vector,
-    adj_matrix,
+    obs_exposure=obs_exposure,
+    obs_outcome=obs_outcome,
+    obs_prob_exposure=obs_prob_exposure,
+    potential_tr_vector=potential_tr_vector,
+    adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
     exposure_map_fn_add_args = exposure_map_fn_add_args,
     n_var_permutations = n_var_permutations,
-    batch_size=3
+    batch_size=3,
+    control_condition='no'
     
   )
   
   
-  expect_equal(batch_estimates$yT_ht, non_batch_estimates$yT_ht)
-  expect_equal(batch_estimates$var_yT_ht, non_batch_estimates$var_yT_ht)
-  expect_equal(batch_estimates$cov_yT_ht, non_batch_estimates$cov_yT_ht)
+  expect_equal(sort(unlist(batch_estimates)), sort(unlist(non_batch_estimates)))
   
 })
 
 test_that("batch estimates produce same results as non-batch, with batch_size=4 (non-divisible by N)", {
+  local_setup()
   
   batch_estimates <- estimates_batch(
-    obs_exposure,
-    obs_outcome,
-    obs_prob_exposure,
-    potential_tr_vector,
-    adj_matrix,
+    obs_exposure=obs_exposure,
+    obs_outcome=obs_outcome,
+    obs_prob_exposure=obs_prob_exposure,
+    potential_tr_vector=potential_tr_vector,
+    adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
     exposure_map_fn_add_args = exposure_map_fn_add_args,
     n_var_permutations = n_var_permutations,
-    batch_size=4
+    batch_size=4,
+    control_condition='no'
     
   )
   
-  
-  expect_equal(batch_estimates$yT_ht, non_batch_estimates$yT_ht)
-  expect_equal(batch_estimates$var_yT_ht, non_batch_estimates$var_yT_ht)
-  expect_equal(batch_estimates$cov_yT_ht, non_batch_estimates$cov_yT_ht)
+  expect_equal(sort(unlist(batch_estimates)), sort(unlist(non_batch_estimates)))
   
 })
 

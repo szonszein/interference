@@ -450,13 +450,12 @@ cov_yT_ht_adjusted <- function(obs_exposure,obs_outcome,prob_exposure, k_to_incl
         first_part_cov <- sum(mm)
         
         
-        DEBUGxxx = matrix(NA, length(cond_indicator_k), length(cond_indicator_l))
         second_part_cov <- 0
         for (i in 1:length(cond_indicator_k)) {
           for (j in 1:length(cond_indicator_l)) {
             if (pi_k_l[i,j]==0) {
               second_part_cov_i_j <- ((cond_indicator_k[i]*obs_outcome[i]^2/(2*ind_kk[i])) + (cond_indicator_l[j]*obs_outcome[j]^2/(2*ind_ll[j])))
-              DEBUGxxx[i, j] <- second_part_cov_i_j
+            
               second_part_cov <- second_part_cov + second_part_cov_i_j
               
             }

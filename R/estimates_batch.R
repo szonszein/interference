@@ -29,12 +29,35 @@ make_exposure_prob_individual <-
 estimates_batch <- function(obs_exposure,
                             obs_outcome,
                             obs_prob_exposure,
+                            n_var_permutations = 10,
+                            
+                            effect_estimators = c('hajek', 'horvitz-thompson'),
+                            variance_estimators = c('hajek', 'horvitz-thompson'),
+                            
+                            control_condition=NULL,
+                            treated_conditions=NULL,
+                            
                             potential_tr_vector,
                             adj_matrix,
                             exposure_map_fn,
                             exposure_map_fn_add_args = NULL,
-                            n_var_permutations = 10,
+                            
+                            
                             batch_size = NA) {
+  if (!is.null(control_condition) & is.null(treated_conditions)) {
+    treated_conditions <- setdiff(names(obs_prob_exposure$I_exposure), control_condition)
+  }
+  k_to_include <- treated_conditions
+  l_to_include <- control_condition
+  
+  
+  if (('constant_effect' %in% variance_estimators) | ('max_ht_const' %in% variance_estimators)) {
+    stop("constant_effect and max_ht_const variance estimators are not supported with batch estimation")
+  }
+  if (('hajek' %in% variance_estimators) & !('hajek' %in% effect_estimators)) {
+    effect_estimators  <- c(effect_estimators, 'hajek')
+  }
+  
   out <- list()
   
   N <- nrow(obs_exposure)
@@ -46,10 +69,7 @@ estimates_batch <- function(obs_exposure,
   obs_outcome_by_exposure[t(obs_exposure) == 0] <- NA
   
   # TODO: Figure out why k and l are switched relative to package
-  # TODO :remove requirement to specify k_to_include and l_to_include
-  k_to_include <- c('dir_ind1', 'isol_dir', 'ind1')
-  l_to_include <- 'no'
-  
+
   running_yT_ht <- vector(mode = 'numeric', ncol(obs_exposure))
   var_yT <-
     matrix(NA,
@@ -74,6 +94,10 @@ estimates_batch <- function(obs_exposure,
   }
   
 
+  obs_prob_exposure_individual_kk <-
+    make_exposure_prob_individual(obs_prob_exposure, 1, N)
+  
+  
   #  Calculate the point estimates, variances, and covariances for one batch at
   #  a time.
   for (i in seq(1, (N), by = batch_size)) {
@@ -96,14 +120,12 @@ estimates_batch <- function(obs_exposure,
         i_end = j
       )
     
-    # TODO: calculate obs_prob_exposure_individual_kk only once for all i, j, and subset here
-    obs_prob_exposure_individual_kk <-
-      make_exposure_prob_individual(obs_prob_exposure, i, j)
     
     sums <-
-      rowSums(obs_outcome_by_exposure[, i:j] / obs_prob_exposure_individual_kk,
+      rowSums(obs_outcome_by_exposure[, i:j] / obs_prob_exposure_individual_kk[, i:j, drop=FALSE],
               na.rm = T)
     
+
     running_yT_ht <- running_yT_ht + sums
     
     
@@ -156,7 +178,7 @@ estimates_batch <- function(obs_exposure,
             cond_indicator[i:j] %o% cond_indicator_l * (pi_k_l - ind_kk_ll) / pi_k_l * (obs_outcome[i:j] %o% obs_outcome) / (ind_kk_ll)
           mm[!is.finite(mm)] <- 0
           
-          if (is.na(cov_yT_A[kl,])) {
+          if (is.na(cov_yT_A[kl,]) ) {
             cov_yT_A[kl,] <- 0
           }
           cov_yT_A[kl,] <- cov_yT_A[kl,] + sum(mm)
@@ -195,15 +217,99 @@ estimates_batch <- function(obs_exposure,
     
   }
   
-  var_yT_ht_adjusted <- var_yT + var_yT_A2
+  cov_yT_ht <- cov_yT_A
+  var_yT_ht <- var_yT + var_yT_A2
   
   yT_ht <- running_yT_ht
   yT_ht[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
   
-  return(list(
-    yT_ht = yT_ht,
-    var_yT_ht = var_yT_ht_adjusted,
-    cov_yT_ht = cov_yT_A
-  ))
+  if ('horvitz-thompson' %in% effect_estimators) {
+    out[['yT_ht']] <- yT_ht
+  }
+  
+
+  
+  if (('hajek' %in% effect_estimators)) {
+    
+    mu_h <-
+      yT_ht / rowSums(t(obs_exposure) / obs_prob_exposure_individual_kk, na.rm =
+                        T)
+    mu_h[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
+    
+    yT_h <- mu_h * N
+    yT_h[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
+    
+    out[['yT_h']] <- yT_h
+  }
+  
+  
+  #  The variance of the hajek estimator is calculated in the same way as the
+  #  variance of the HT estimator, but substituting the residuals (`resid_h`)
+  #  for the observed outcomes. This means that we first need to calculate
+  #  the yT_ht and from that the residuals, and then call estimates_batch
+  #  again with the residuals in place of the outcomes.
+  
+  if (('hajek' %in% variance_estimators)) {
+
+
+    resid_h <-
+      colSums((obs_outcome_by_exposure - mu_h), na.rm = T) # pass resid_h instead of obs_outcome to var, cov
+
+    hajek_estimates <- estimates_batch(obs_exposure=obs_exposure,
+                                obs_outcome=resid_h,
+                                obs_prob_exposure=obs_prob_exposure,
+                                n_var_permutations = obs_prob_exposure,
+                                
+                                effect_estimators = c('horvitz-thompson'),
+                                variance_estimators = c( 'horvitz-thompson'),
+                                
+                                control_condition=control_condition,
+                                treated_conditions=treated_conditions,
+                                
+                                potential_tr_vector=potential_tr_vector,
+                                adj_matrix=adj_matrix,
+                                exposure_map_fn=exposure_map_fn,
+                                exposure_map_fn_add_args = exposure_map_fn_add_args,
+                                
+                
+                                batch_size = batch_size)
+    
+    var_yT_h <-  hajek_estimates[['var_yT_ht']]
+    cov_yT_h <- hajek_estimates[['cov_yT_ht']]
+    out[['var_yT_h']] <-var_yT_h
+    out[['cov_yT_h']] <- cov_yT_h
+    var_tau_h <-
+      (1 / N ^ 2) * (var_yT_h[!rownames(var_yT_h) %in% control_condition,] + var_yT_h[rownames(var_yT_h) %in% control_condition,] -
+                       2 * cov_yT_h[rownames(cov_yT_h) %in% paste(treated_conditions, control_condition, sep=','),])
+    
+    out[['var_tau_h']] <- var_tau_h
+  }
+  
+  
+
+  
+  
+  if ('horvitz-thompson' %in% variance_estimators) {
+    out[['var_yT_ht']] <- var_yT_ht
+    out[['cov_yT_ht']] <- cov_yT_ht
+    
+    var_tau_ht <-
+      (1 / N ^ 2) * (var_yT_ht[!rownames(var_yT_ht) %in% control_condition,] + var_yT_ht[rownames(var_yT_ht) %in% control_condition,] -
+                       2 * cov_yT_ht[rownames(cov_yT_ht) %in% paste(treated_conditions, control_condition, sep=','),])
+    out[['var_tau_ht']] <- var_tau_ht
+    
+  }
+  
+  
+  if (('horvitz-thompson' %in% effect_estimators)) {
+    tau_ht <- (1 / N) * (yT_ht - yT_ht['no'])[names(yT_ht) != 'no']
+    out[['tau_ht']] <- tau_ht
+  }
+  if (('hajek' %in% effect_estimators)) {
+    tau_h <- (mu_h - mu_h['no'])[names(mu_h) != 'no']
+    out[['tau_h']] <- tau_h
+  }
+  
+  return(out)
   
 }
