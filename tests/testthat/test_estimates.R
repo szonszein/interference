@@ -70,5 +70,4 @@ test_that("estimates()", {
       'tau_dsm'
       ))
 
-
 })
