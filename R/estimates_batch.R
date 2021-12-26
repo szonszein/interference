@@ -121,7 +121,6 @@ estimates_batch <- function(obs_exposure,
     }
   
     
-
     obs_prob_exposure <-
       make_exposure_prob(
         potential_tr_vector,
