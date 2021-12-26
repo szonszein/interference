@@ -310,7 +310,7 @@ estimates <-
   
     
     
-    if (('horvitz-thompson' %in% variance_estimators)) {
+    if (('horvitz-thompson' %in% effect_estimators)) {
       tau_ht <- (1 / N) * (yT_ht - yT_ht['no'])[names(yT_ht) != 'no']
       out[['tau_ht']] <- tau_ht
     }
