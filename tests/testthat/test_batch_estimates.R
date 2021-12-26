@@ -57,7 +57,6 @@ test_that("batch estimates produce same results as non-batch, with batch_size=N"
   batch_estimates <- estimates_batch(
     obs_exposure=obs_exposure,
     obs_outcome=obs_outcome,
-    obs_prob_exposure=obs_prob_exposure,
     potential_tr_vector=potential_tr_vector,
     adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
@@ -78,7 +77,6 @@ test_that("batch estimates produce same results as non-batch, with batch_size=1"
   batch_estimates <- estimates_batch(
     obs_exposure=obs_exposure,
     obs_outcome=obs_outcome,
-    obs_prob_exposure=obs_prob_exposure,
     potential_tr_vector=potential_tr_vector,
     adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
@@ -98,7 +96,6 @@ test_that("batch estimates produce same results as non-batch, with batch_size=3 
   batch_estimates <- estimates_batch(
     obs_exposure=obs_exposure,
     obs_outcome=obs_outcome,
-    obs_prob_exposure=obs_prob_exposure,
     potential_tr_vector=potential_tr_vector,
     adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,
@@ -120,7 +117,6 @@ test_that("batch estimates produce same results as non-batch, with batch_size=4 
   batch_estimates <- estimates_batch(
     obs_exposure=obs_exposure,
     obs_outcome=obs_outcome,
-    obs_prob_exposure=obs_prob_exposure,
     potential_tr_vector=potential_tr_vector,
     adj_matrix=adj_matrix,
     exposure_map_fn = exposure_map_fn,

@@ -26,9 +26,20 @@ make_exposure_prob_individual <-
   }
 
 
+make_kl_names <- function(exposure_names) {
+  kl_names <- c()
+  for (k in exposure_names) {
+    for (l in exposure_names) {
+      if (k!=l) {
+        kl_names <-c(kl_names, paste(k, l, sep=','))
+      }
+    }
+  }
+  return(list(kl_names))
+}
+
 estimates_batch <- function(obs_exposure,
                             obs_outcome,
-                            obs_prob_exposure,
                             n_var_permutations = 10,
                             
                             effect_estimators = c('hajek', 'horvitz-thompson'),
@@ -45,7 +56,7 @@ estimates_batch <- function(obs_exposure,
     
                             batch_size = NA) {
   if (!is.null(control_condition) & is.null(treated_conditions)) {
-    treated_conditions <- setdiff(names(obs_prob_exposure$I_exposure), control_condition)
+    treated_conditions <- setdiff(colnames(obs_exposure), control_condition)
   }
   k_to_include <- treated_conditions
   l_to_include <- control_condition
@@ -71,6 +82,8 @@ estimates_batch <- function(obs_exposure,
   # TODO: Figure out why k and l are switched relative to package
 
   running_yT_ht <- vector(mode = 'numeric', ncol(obs_exposure))
+  running_mu_h_divisor <- vector(mode = 'numeric', ncol(obs_exposure))
+  names(running_mu_h_divisor) <- colnames(obs_exposure)
   var_yT <-
     matrix(NA,
            nrow = ncol(obs_exposure),
@@ -78,6 +91,7 @@ estimates_batch <- function(obs_exposure,
   #  Matrix of adjustments to the variance, initalized at zero because
   #  it is only ever summed with the variance; if the variance is undefined,
   #  the sum will be too
+
   var_yT_A2 <-
     matrix(0,
            nrow = ncol(obs_exposure),
@@ -85,17 +99,14 @@ estimates_batch <- function(obs_exposure,
   cov_yT_A <-
     matrix(NA,
            nrow = 2 * choose(ncol(obs_exposure), 2),
-           dimnames = list(names(obs_prob_exposure$prob_exposure_k_l)))
+           dimnames = make_kl_names(colnames(obs_exposure))
+    )
   if (is.null(k_to_include)) {
     k_to_include <- colnames(obs_exposure)
   }
   if (is.null(l_to_include)) {
     l_to_include <- colnames(obs_exposure)
   }
-  
-
-  obs_prob_exposure_individual_kk <-
-    make_exposure_prob_individual(obs_prob_exposure, 1, N)
   
   
   #  Calculate the point estimates, variances, and covariances for one batch at
@@ -110,6 +121,7 @@ estimates_batch <- function(obs_exposure,
     }
   
     
+
     obs_prob_exposure <-
       make_exposure_prob(
         potential_tr_vector,
@@ -120,14 +132,16 @@ estimates_batch <- function(obs_exposure,
         i_end = j
       )
     
+    # TODO: calculate obs_prob_exposure_individual_kk only once for all i, j, and subset here
+    obs_prob_exposure_individual_kk <- make_exposure_prob_individual(obs_prob_exposure, i, j)
     
     sums <-
-      rowSums(obs_outcome_by_exposure[, i:j] / obs_prob_exposure_individual_kk[, i:j, drop=FALSE],
+      rowSums(obs_outcome_by_exposure[, i:j] / obs_prob_exposure_individual_kk,
               na.rm = T)
-    
-
     running_yT_ht <- running_yT_ht + sums
     
+    
+    running_mu_h_divisor <- running_mu_h_divisor + rowSums(t(obs_exposure[i:j,,drop=FALSE]) / obs_prob_exposure_individual_kk, na.rm = T)
     
     
     #  TODO: reuse the single obs_prob_exposure_individual_kk above for all_ind_kk
@@ -232,8 +246,7 @@ estimates_batch <- function(obs_exposure,
   if (('hajek' %in% effect_estimators)) {
     
     mu_h <-
-      yT_ht / rowSums(t(obs_exposure) / obs_prob_exposure_individual_kk, na.rm =
-                        T)
+      yT_ht / running_mu_h_divisor
     mu_h[rowSums(!is.na(obs_outcome_by_exposure)) == 0] <- NA
     
     yT_h <- mu_h * N
@@ -257,7 +270,6 @@ estimates_batch <- function(obs_exposure,
 
     hajek_estimates <- estimates_batch(obs_exposure=obs_exposure,
                                 obs_outcome=resid_h,
-                                obs_prob_exposure=obs_prob_exposure,
                                 n_var_permutations = n_var_permutations,
                                 
                                 effect_estimators = c('horvitz-thompson'),
