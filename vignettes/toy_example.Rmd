@@ -1,0 +1,61 @@
+---
+title: "Toy Example from Spillover Effects in Experimental Data"
+author: "Stephanie Zonszein"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Toy Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+This vignette reproduces the toy example from Aronow, Peter M., et al. "[Spillover effects in experimental data.](https://arxiv.org/abs/2001.05444)" Advances in Experimental Political Science (2021): 289, using the latest version of the package. Because the package has changed since this chapter was written, the code below does not exactly match that in the chapter, but is equivalent. If you want the exact version of the package used for the chapter ([0.1.0](https://github.com/szonszein/interference/tree/0.1.0)), install it with `devtools::install_github('szonszein/interference', ref='0.1.0')` (note that even then, [changes in R itself](https://www.r-bloggers.com/2019/08/remember-the-change-in-the-sample-function-of-r-3-6-0/) might make the results differ.)
+
+```{R}
+library(interference)
+
+N <- 10
+p <- 0.2
+
+RNGkind(sample.kind = "Rounding") # Required for compatiblity with R versions > 3.6.0.
+Z <- make_tr_vec_permutation(N, p, R = 1, seed = 56)
+Z
+```
+
+```{R}
+adj_matrix <- make_adj_matrix(N, model = 'small_world', seed = 492) 
+adj_matrix
+```
+
+```{R}
+D <- make_exposure_map_AS(adj_matrix, Z, hop = 1)
+D
+```
+
+```{R}
+omega <- make_tr_vec_permutation( N, p,
+                                  R = 30, seed = 420, allow_repetitions = FALSE
+)
+prob_exposure <- make_exposure_prob(
+  omega,
+  adj_matrix, make_exposure_map_AS, list(hop = 1)
+)
+make_prob_exposure_cond(prob_exposure)
+```
+
+```{R}
+potential_outcomes <- make_dilated_out( adj_matrix, make_corr_out, seed = 1101,
+                                        multipliers = NULL, hop = 1
+)
+observed_outcomes <- rowSums(D*t(potential_outcomes))
+
+estimates(D, observed_outcomes, prob_exposure, control_condition='no')$tau_ht
+```
