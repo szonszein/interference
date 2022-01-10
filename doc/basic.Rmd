@@ -1,0 +1,167 @@
+---
+title: "Basic Usage"
+author: "Stephanie Zonszein"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Basic Usage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+```{r, include=FALSE}
+#  This chunk creates the plausible but fake data for the vignette
+
+library(igraph)
+library(igraphdata)
+library(interference)
+data(USairports)
+agraph <- as.undirected(USairports)
+amat <- as_adj(agraph, sparse=FALSE)
+igraph::write_graph(agraph, './airports_undirected.csv', format='edgelist')
+
+outcomes <- make_dilated_out(amat, make_corr_out, seed=0, hop=1, multipliers=NULL)
+tr_vector <- make_tr_vec_permutation(nrow(amat),0.2,R=1,seed=4224)
+
+exposure <- make_exposure_map_AS(amat, tr_vector, hop=1) 
+obs_outcome <- rowSums(exposure*t(outcomes))
+
+vars <- data.frame(id=1:755, treatment=tr_vector[1,], y=obs_outcome)
+fwrite(vars, './airports_vars_hop1.csv')
+
+outcomes <- make_dilated_out(amat, make_corr_out, seed=0, hop=2, multipliers=NULL)
+exposure <- make_exposure_map_AS(amat, tr_vector, hop=2) 
+obs_outcome <- rowSums(exposure*t(outcomes))
+
+vars <- data.frame(id=1:755, treatment=tr_vector[1,], y=obs_outcome)
+fwrite(vars, './airports_vars_hop2.csv')
+
+```
+
+# Loading and Preparing Data
+
+```{r}
+network <- read_graph('./airports_undirected.csv', format='edgelist', directed=FALSE)
+adj_matrix <- as_adj(network, sparse=FALSE)
+```
+
+## Check the adjacency matrix
+
+In order to use an adjacency matrix with `interference`, it must be symmetric (i.e. correspond to an undirected graph), and have all zeros on the diagonal (i.e. no self-edges).
+
+Make sure that there are no entries different to 0 in the diagonal of the matrix.
+```{r}
+diag(adj_matrix) <- 0
+```
+
+Make sure that the matrix is symmetric.
+```{r}
+isSymmetric(adj_matrix)
+```
+
+
+Load the variables file, which contains the outcomes and treatment indicator:
+
+```{r}
+vars <- read.csv('./airports_vars_hop1.csv')
+```
+
+
+## Remove isolates
+
+Remove isolates from the network, and from the variables data frame:
+```{r}
+non_isolates <- which(rowSums(adj_matrix)>0)
+
+print(non_isolates)
+print(length(non_isolates))
+print(nrow(adj_matrix))
+
+adj_matrix <- adj_matrix[non_isolates, non_isolates]
+vars <- vars[vars$id %in% non_isolates,]
+
+```
+
+In this case, there is only one isolate.
+
+# Analysis
+
+Compute the exposure probabilities, using the AS (Aronow-Samii) exposure mapping (2008, p. 1930, AoAS):
+
+```{r}
+num_replicates <- 1500
+prop_treated <- 0.2
+N <- nrow(adj_matrix)
+
+potential_tr_vector <- make_tr_vec_permutation(N, p=prop_treated, R=num_replicates, seed=4224)
+exposure <- make_exposure_map_AS(adj_matrix, vars$treatment, hop=1) 
+obs_prob_exposure <- make_exposure_prob(potential_tr_vector, adj_matrix, make_exposure_map_AS, list(hop=1))
+```
+
+
+```{r, message=FALSE, warning=FALSE, cache=FALSE}
+my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, control_condition='no') 
+```
+
+The return value of this function contains the values of a number of different estimators:
+
+$\hat{\tau}_{HT}(d_{11},d_{00})$, $\hat{\tau}_{HT}(d_{10},d_{00})$, and $\hat{\tau}_{HT}(d_{01},d_{00})$, the Horvitz-Thompson estimators for each exposure condition. It also contains the variances of these estimators, as well as their constant-effects variance estimators:
+```{r}
+my_estimates$tau_ht
+my_estimates$var_tau_ht
+my_estimates$var_tau_ht_const_eff
+```
+
+
+$\hat{\tau}_{H}(d_{11},d_{00})$, $\hat{\tau}_{H}(d_{10},d_{00})$, and $\hat{\tau}_{H}(d_{01},d_{00})$, the corresponding Hájek estimator, and their variances:
+```{r}
+my_estimates$tau_h
+my_estimates$var_tau_h
+```
+
+
+# Analysis assuming second order degree interference
+
+First load the variables file, which contains the outcomes and treatment indicator, and remove isolates from the variables data:
+
+```{r}
+vars <- read.csv('./airports_vars_hop2.csv')
+vars <- vars[vars$id %in% non_isolates,]
+```
+
+
+Compute the exposure probabilities, using a type of AS (Aronow-Samii) exposure mapping that assumes second order degree interference:
+
+```{r}
+exposure <- make_exposure_map_AS(adj_matrix, vars$treatment, hop=2) 
+obs_prob_exposure <- make_exposure_prob(potential_tr_vector, adj_matrix, make_exposure_map_AS, list(hop=2))
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+my_estimates <- estimates(exposure, vars$y, obs_prob_exposure, n_var_permutations = 1000, control_condition='no') 
+```
+
+Get the values of the Horvitz-Thompson estimators and their variances:
+```{r}
+my_estimates$tau_ht
+my_estimates$var_tau_ht
+my_estimates$var_tau_ht_const_eff
+```
+
+
+Get the values of the Hájek estimators and their variances:
+```{r}
+my_estimates$tau_h
+my_estimates$var_tau_h
+```
+
+In this case, $\hat{\tau}_{HT}(d_{110},d_{000})$, $\hat{\tau}_{H}(d_{110},d_{000})$ and their variances are `NA` because there are no units in the $d_{110}$ exposure condition.
