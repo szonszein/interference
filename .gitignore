@@ -4,3 +4,7 @@ inst/doc
 .RData
 .DS_Store
 ..Rcheck
+doc
+Meta
+.Rbuildignore
+vignettes/.build.timestamp
